@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+<h2>Dashboard</h2>
+
+<div class="stats">
+  <div class="stat-box"><h3>Total</h3><p id="total">$0</p></div>
+  <div class="stat-box"><h3>Active</h3><p id="active">0</p></div>
+  <div class="stat-box"><h3>Matured</h3><p id="matured">0</p></div>
+</div>
+
+<div class="card">
+<h3>Invest</h3>
+<button onclick="invest(5)">Invest $5</button>
+<button onclick="invest(10)">Invest $10</button>
+<button onclick="invest(20)">Invest $20</button>
+</div>
+
+<div class="card">
+<h3>Chart</h3>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<h3>Transactions</h3>
+<div id="transactions"></div>
+</div>
+
+<div class="card">
+<h3>Referral</h3>
+<p id="refLink"></p>
+</div>
+
+</div>
+
+<script type="module">
+import { auth, db } from './firebase.js';
+import { ref, push, onValue, get }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const LOCK = 30*24*60*60*1000;
+let chart;
+
+auth.onAuthStateChanged(async user=>{
+  if(!user) location="index.html";
+
+  const userSnap = await get(ref(db,'users/'+user.uid));
+  const userData = userSnap.val();
+  document.getElementById("refLink").innerText =
+    location.origin+"/index.html?ref="+userData.referralCode;
+
+  const investRef = ref(db,'investments/'+user.uid);
+
+  onValue(investRef,(snap)=>{
+    const data=snap.val();
+    if(!data) return;
+
+    let total=0, active=0, matured=0;
+    const amounts=[];
+
+    Object.values(data).forEach(inv=>{
+      total+=inv.amount;
+      amounts.push(inv.amount);
+
+      if(Date.now()-inv.startDate>=LOCK){
+        matured++;
+      } else active++;
+    });
+
+    totalEl.innerText="$"+total;
+    activeEl.innerText=active;
+    maturedEl.innerText=matured;
+
+    if(chart) chart.destroy();
+    chart=new Chart(chartCanvas,{
+      type:"bar",
+      data:{labels:amounts.map(()=> "Investment"),datasets:[{data:amounts}]}
+    });
+  });
+
+  const transRef = ref(db,'transactions/'+user.uid);
+  onValue(transRef,(snap)=>{
+    const data=snap.val();
+    if(!data) return;
+    let html="";
+    Object.values(data).forEach(t=>{
+      html+=`<div class="card">
+      ${t.type} - $${t.amount}
+      </div>`;
+    });
+    transactions.innerHTML=html;
+  });
+});
+
+window.invest=async amount=>{
+  const user=auth.currentUser;
+
+  await push(ref(db,'investments/'+user.uid),{
+    amount,
+    startDate:Date.now()
+  });
+
+  await push(ref(db,'transactions/'+user.uid),{
+    type:"deposit",
+    amount,
+    date:Date.now()
+  });
+
+  alert("Investment added");
+};
+</script>
+
+</body>
+</html>
