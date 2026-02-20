@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fintech Dashboard</title>
+<title>Fintech Pro Dashboard</title>
 
 <style>
 body{
@@ -25,6 +25,8 @@ padding:10px;
 border:none;
 border-radius:6px;
 cursor:pointer;
+background:#00ff99;
+font-weight:bold;
 }
 
 .card{
@@ -45,42 +47,34 @@ border-radius:5px;
 border:none;
 }
 
-.spinner{
+.adminBox{
+background:#2a0000;
+padding:15px;
+margin:15px;
+border-radius:10px;
 display:none;
-text-align:center;
 }
 
-.dollar{
-position:fixed;
-font-size:22px;
-color:#00ff99;
-animation:float 6s linear infinite;
-}
-
-@keyframes float{
-0%{transform:translateY(100vh);}
-100%{transform:translateY(-10vh);}
-}
 </style>
 </head>
 
 <body>
 
 <header>
-<h3>💰 Fintech App</h3>
+<h3>💰 Fintech Pro</h3>
 <button onclick="logout()">Logout</button>
 </header>
 
 <div class="card">
 <h2>Profile</h2>
-<p><b>Email:</b> <span id="email"></span></p>
-<p><b>User ID:</b> <span id="profileId"></span></p>
+<p><b>Email (Profile ID):</b> <span id="email"></span></p>
 <p><b>Balance:</b> $<span id="balance">0.00</span></p>
-<p><b>Earnings:</b> $<span id="earnings">0.00</span></p>
+<p><b>Total Earnings:</b> $<span id="earnings">0.00</span></p>
+<p><b>Active Plan:</b> <span id="activePlan">None</span></p>
 </div>
 
 <div class="card">
-<h2>Investment Plans</h2>
+<h2>Investment Plans (30 Days)</h2>
 <select id="planSelect">
 <option value="5">Starter - $5 (Earn $0.25 Daily)</option>
 <option value="20">Silver - $20 (Earn $1 Daily)</option>
@@ -91,11 +85,9 @@ animation:float 6s linear infinite;
 
 <div class="card">
 <h2>Deposit</h2>
-<p>Send to one of these wallets:</p>
 <p><b>TRC20 USDT:</b><br>TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe</p>
-<p><b>BEP20 BNB:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
-<p><b>ERC20 ETH:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
-
+<p><b>BEP20:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
+<p><b>ERC20:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
 <input type="number" id="depositAmount" placeholder="Enter Amount">
 <button onclick="submitDeposit()">Submit Deposit</button>
 </div>
@@ -103,158 +95,248 @@ animation:float 6s linear infinite;
 <div class="card">
 <h2>Withdraw</h2>
 <input type="number" id="withdrawAmount" placeholder="Enter Amount">
-<button onclick="withdraw()">Withdraw</button>
+<button onclick="withdraw()">Request Withdrawal</button>
 </div>
 
 <div class="card">
 <h2>Referral</h2>
-<p>Your Referral Link:</p>
+<p>Your Link:</p>
 <p id="refLink"></p>
 </div>
 
-<div class="spinner" id="loading">Processing...</div>
+<!-- ADMIN PANEL -->
+<div class="adminBox" id="adminPanel">
+<h2>Admin Panel</h2>
+<h3>Pending Deposits</h3>
+<div id="depositList"></div>
 
-  <script type="module">
+<h3>Pending Withdrawals</h3>
+<div id="withdrawList"></div>
+</div>
+
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getAuth,
-  onAuthStateChanged,
-  signOut,
-  setPersistence,
-  browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-import { 
-  getDatabase,
-  ref,
-  set,
-  get,
-  update,
-  onValue,
-  push
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getAuth,onAuthStateChanged,signOut,setPersistence,browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase,ref,set,get,update,onValue,push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
-  authDomain: "crypto-gainz-3524d.firebaseapp.com",
-  databaseURL: "https://crypto-gainz-3524d-default-rtdb.firebaseio.com",
-  projectId: "crypto-gainz-3524d",
-  storageBucket: "crypto-gainz-3524d.firebasestorage.app",
-  messagingSenderId: "270349829717",
-  appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_PROJECT_ID",
+  appId: "YOUR_APP_ID"
 };
+
+const ADMIN_EMAIL = "earnsmartapps@gmail.com";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-/* 🔥 THIS FIXES AUTO LOGOUT */
 await setPersistence(auth, browserLocalPersistence);
 
-let currentUser = null;
+let currentUser;
 
-/* 🔥 Wait for auth to fully load */
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async (user)=>{
+if(!user){
+window.location.replace("index.html");
+return;
+}
 
-  if (!user) {
-    console.log("User not logged in");
-    window.location.replace("index.html");
-    return;
-  }
+currentUser=user;
+document.getElementById("email").innerText=user.email;
+document.getElementById("refLink").innerText=
+window.location.origin+"/?ref="+user.uid;
 
-  console.log("Logged in:", user.email);
+if(user.email===ADMIN_EMAIL){
+document.getElementById("adminPanel").style.display="block";
+loadAdmin();
+}
 
-  currentUser = user;
+const userRef=ref(db,"users/"+user.uid);
+const snap=await get(userRef);
 
-  document.getElementById("email").innerText = user.email || "No Email";
-  document.getElementById("profileId").innerText = user.uid;
-  document.getElementById("refLink").innerText =
-    window.location.origin + "/?ref=" + user.uid;
+if(!snap.exists()){
+await set(userRef,{
+email:user.email,
+balance:0,
+earnings:0,
+plan:null,
+activationDate:null,
+lastPaid:null,
+refBy:null
+});
+}
 
-  const userRef = ref(db, "users/" + user.uid);
-  const snap = await get(userRef);
+onValue(userRef,(s)=>{
+let d=s.val();
+if(!d) return;
 
-  if (!snap.exists()) {
-    await set(userRef, {
-      email: user.email || "",
-      balance: 0,
-      earnings: 0,
-      plan: null,
-      activationDate: null
-    });
-  }
+document.getElementById("balance").innerText=(d.balance||0).toFixed(2);
+document.getElementById("earnings").innerText=(d.earnings||0).toFixed(2);
+document.getElementById("activePlan").innerText=d.plan? "$"+d.plan:"None";
 
-  onValue(userRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    document.getElementById("balance").innerText =
-      (data.balance || 0).toFixed(2);
-
-    document.getElementById("earnings").innerText =
-      (data.earnings || 0).toFixed(2);
-  });
-
+checkDailyProfit(d);
+checkExpiration(d);
+});
 });
 
-/* Logout */
-window.logout = function () {
-  signOut(auth).then(() => {
-    window.location.replace("index.html");
-  });
+/* DAILY PROFIT */
+async function checkDailyProfit(d){
+if(!d.plan||!d.activationDate) return;
+
+let now=Date.now();
+let oneDay=86400000;
+
+if(!d.lastPaid||now-d.lastPaid>=oneDay){
+let daily=d.plan*0.05;
+await update(ref(db,"users/"+currentUser.uid),{
+balance:(d.balance||0)+daily,
+earnings:(d.earnings||0)+daily,
+lastPaid:now
+});
+}
+}
+
+/* PLAN EXPIRATION */
+async function checkExpiration(d){
+if(!d.activationDate) return;
+let now=Date.now();
+let thirty=30*86400000;
+
+if(now-d.activationDate>=thirty){
+await update(ref(db,"users/"+currentUser.uid),{
+plan:null,
+activationDate:null,
+lastPaid:null
+});
+alert("Plan expired after 30 days");
+}
+}
+
+/* ACTIVATE PLAN */
+window.activatePlan=async function(){
+let amount=parseFloat(document.getElementById("planSelect").value);
+let uRef=ref(db,"users/"+currentUser.uid);
+let snap=await get(uRef);
+let d=snap.val();
+
+if(d.balance<amount) return alert("Deposit first");
+
+await update(uRef,{
+balance:d.balance-amount,
+plan:amount,
+activationDate:Date.now(),
+lastPaid:Date.now()
+});
+
+alert("Plan Activated!");
 };
 
-/* Deposit */
-window.submitDeposit = async function () {
-  if (!currentUser) return alert("Please login again");
+/* DEPOSIT */
+window.submitDeposit=async function(){
+let amount=parseFloat(document.getElementById("depositAmount").value);
+if(!amount) return alert("Enter amount");
 
-  let amount = document.getElementById("depositAmount").value;
-  if (!amount) return alert("Enter amount");
-
-  await push(ref(db, "deposits"), {
-    uid: currentUser.uid,
-    email: currentUser.email,
-    amount: parseFloat(amount),
-    status: "pending",
-    date: Date.now()
-  });
-
-  alert("Deposit submitted. Wait for admin approval.");
+await push(ref(db,"deposits"),{
+uid:currentUser.uid,
+email:currentUser.email,
+amount:amount,
+status:"pending",
+date:Date.now()
+});
+alert("Deposit submitted for approval");
 };
 
-/* Activate Plan */
-window.activatePlan = async function () {
-  if (!currentUser) return alert("Please login again");
+/* WITHDRAW */
+window.withdraw=async function(){
+let amount=parseFloat(document.getElementById("withdrawAmount").value);
+if(!amount) return alert("Enter amount");
 
-  let amount = parseFloat(document.getElementById("planSelect").value);
-  const userRef = ref(db, "users/" + currentUser.uid);
-
-  await update(userRef, {
-    plan: amount,
-    activationDate: Date.now()
-  });
-
-  alert("Plan activated!");
+await push(ref(db,"withdrawals"),{
+uid:currentUser.uid,
+email:currentUser.email,
+amount:amount,
+status:"pending",
+date:Date.now()
+});
+alert("Withdrawal request sent");
 };
 
-/* Withdraw */
-window.withdraw = async function () {
-  if (!currentUser) return alert("Please login again");
+/* ADMIN LOAD */
+function loadAdmin(){
+onValue(ref(db,"deposits"),(s)=>{
+let html="";
+s.forEach(child=>{
+let d=child.val();
+if(d.status==="pending"){
+html+=`
+<p>${d.email} - $${d.amount}
+<button onclick="approveDeposit('${child.key}','${d.uid}',${d.amount})">Approve</button>
+</p>`;
+}
+});
+document.getElementById("depositList").innerHTML=html;
+});
 
-  let amount = parseFloat(document.getElementById("withdrawAmount").value);
-  const userRef = ref(db, "users/" + currentUser.uid);
-  const snap = await get(userRef);
-  let data = snap.val();
+onValue(ref(db,"withdrawals"),(s)=>{
+let html="";
+s.forEach(child=>{
+let d=child.val();
+if(d.status==="pending"){
+html+=`
+<p>${d.email} - $${d.amount}
+<button onclick="approveWithdraw('${child.key}','${d.uid}',${d.amount})">Approve</button>
+</p>`;
+}
+});
+document.getElementById("withdrawList").innerHTML=html;
+});
+}
 
-  if (!data || amount > data.balance)
-    return alert("Insufficient balance");
+/* APPROVE DEPOSIT */
+window.approveDeposit=async function(id,uid,amount){
+await update(ref(db,"deposits/"+id),{status:"approved"});
 
-  await update(userRef, {
-    balance: data.balance - amount
-  });
+let uRef=ref(db,"users/"+uid);
+let snap=await get(uRef);
+let d=snap.val();
 
-  alert("Withdrawal request submitted");
+await update(uRef,{
+balance:(d.balance||0)+amount
+});
+
+/* REFERRAL BONUS 10% */
+if(d.refBy){
+let rRef=ref(db,"users/"+d.refBy);
+let rsnap=await get(rRef);
+let rd=rsnap.val();
+await update(rRef,{
+balance:(rd.balance||0)+(amount*0.1)
+});
+}
+
+alert("Deposit Approved");
 };
-  </script>
+
+/* APPROVE WITHDRAW */
+window.approveWithdraw=async function(id,uid,amount){
+await update(ref(db,"withdrawals/"+id),{status:"approved"});
+
+let uRef=ref(db,"users/"+uid);
+let snap=await get(uRef);
+let d=snap.val();
+
+await update(uRef,{
+balance:(d.balance||0)-amount
+});
+
+alert("Withdrawal Approved");
+};
+
+window.logout=function(){
+signOut(auth);
+};
+</script>
 </body>
   </html>
