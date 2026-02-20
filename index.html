@@ -1,280 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Earn Smart</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
 *{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:'Inter',sans-serif;
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins', sans-serif;
 }
 
 body{
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:radial-gradient(circle at top left,#0f172a,#020617);
-  overflow:hidden;
-  color:white;
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
 }
 
-/* Floating Dollar Animation */
+/* Floating dollar animation */
 .dollar{
-  position:absolute;
-  font-size:20px;
-  color:#22c55e;
-  opacity:0.08;
-  animation:float linear infinite;
+    position:absolute;
+    color:rgba(255,255,255,0.1);
+    font-size:30px;
+    animation: float 10s linear infinite;
 }
 
 @keyframes float{
-  0%{ transform:translateY(110vh) rotate(0deg); }
-  100%{ transform:translateY(-10vh) rotate(360deg); }
+    0%{ transform:translateY(100vh); }
+    100%{ transform:translateY(-10vh); }
 }
 
 .container{
-  width:95%;
-  max-width:420px;
-  padding:40px;
-  border-radius:24px;
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(25px);
-  box-shadow:0 0 60px rgba(0,0,0,0.5);
-  animation:fadeIn 1s ease;
+    width:350px;
+    background:white;
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 15px 40px rgba(0,0,0,0.3);
+    z-index:2;
 }
 
-@keyframes fadeIn{
-  from{opacity:0; transform:translateY(40px);}
-  to{opacity:1; transform:translateY(0);}
-}
-
-.logo{
-  font-size:26px;
-  font-weight:700;
-  margin-bottom:10px;
-}
-
-.subtitle{
-  font-size:14px;
-  color:#facc15;
-  margin-bottom:30px;
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    color:#2c5364;
 }
 
 input{
-  width:100%;
-  padding:14px;
-  margin-bottom:14px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.1);
-  background:#0f172a;
-  color:white;
-  font-size:14px;
-  transition:0.3s;
+    width:100%;
+    padding:12px;
+    margin-bottom:15px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    outline:none;
+    transition:0.3s;
 }
 
 input:focus{
-  border-color:#22c55e;
-  box-shadow:0 0 10px rgba(34,197,94,0.5);
+    border-color:#2c5364;
+    box-shadow:0 0 5px rgba(44,83,100,0.5);
 }
 
 button{
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  background:linear-gradient(90deg,#22c55e,#16a34a);
-  color:white;
-  font-weight:600;
-  cursor:pointer;
-  margin-top:10px;
-  transition:0.3s;
-  position:relative;
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border:none;
+    border-radius:8px;
+    background:#2c5364;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.3s;
 }
 
 button:hover{
-  transform:scale(1.03);
+    background:#203a43;
 }
 
+.link{
+    text-align:center;
+    margin-top:10px;
+    font-size:14px;
+    color:#2c5364;
+    cursor:pointer;
+}
+
+.link:hover{
+    text-decoration:underline;
+}
+
+/* Loading Spinner */
 .spinner{
-  width:18px;
-  height:18px;
-  border:3px solid rgba(255,255,255,0.3);
-  border-top:3px solid white;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  display:none;
-  position:absolute;
-  right:20px;
-  top:50%;
-  transform:translateY(-50%);
+    display:none;
+    margin:auto;
+    border:4px solid #f3f3f3;
+    border-top:4px solid #2c5364;
+    border-radius:50%;
+    width:30px;
+    height:30px;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin{
-  100%{ transform:translateY(-50%) rotate(360deg); }
-}
-
-.switch, .forgot{
-  font-size:13px;
-  margin-top:15px;
-  text-align:center;
-  cursor:pointer;
-  color:#60a5fa;
-}
-
-.forgot{
-  text-align:right;
-  margin-top:-5px;
-  margin-bottom:10px;
-  color:#f87171;
-}
-
-.toast{
-  position:fixed;
-  bottom:30px;
-  right:30px;
-  background:#111827;
-  padding:15px 20px;
-  border-radius:12px;
-  box-shadow:0 0 20px rgba(0,0,0,0.5);
-  display:none;
+    0%{transform:rotate(0deg);}
+    100%{transform:rotate(360deg);}
 }
 </style>
 </head>
-
 <body>
 
-<!-- Floating Dollars -->
-<script>
-for(let i=0;i<30;i++){
-  const d=document.createElement("div");
-  d.className="dollar";
-  d.style.left=Math.random()*100+"%";
-  d.style.animationDuration=(6+Math.random()*6)+"s";
-  d.innerText="$";
-  document.body.appendChild(d);
-}
-</script>
+<!-- Floating dollars -->
+<div class="dollar" style="left:10%; animation-delay:0s;">$</div>
+<div class="dollar" style="left:30%; animation-delay:2s;">$</div>
+<div class="dollar" style="left:60%; animation-delay:4s;">$</div>
+<div class="dollar" style="left:80%; animation-delay:6s;">$</div>
 
 <div class="container">
 
-<div class="logo">Earn Smart</div>
-<div class="subtitle">Investments carry risk. Returns NOT guaranteed.</div>
+<h1>Earn Smart</h1>
 
 <input type="email" id="email" placeholder="Email">
 <input type="password" id="password" placeholder="Password">
 <input type="text" id="referral" placeholder="Referral Code (Optional)">
 
-<div class="forgot" onclick="resetPassword()">Forgot Password?</div>
+<button onclick="signUp()">Sign Up</button>
+<button onclick="login()">Login</button>
 
-<button onclick="signUp()" id="signupBtn">
-  Sign Up
-  <div class="spinner" id="signupSpinner"></div>
-</button>
+<div class="link" onclick="forgotPassword()">Forgot Password?</div>
 
-<button onclick="login()" id="loginBtn">
-  Login
-  <div class="spinner" id="loginSpinner"></div>
-</button>
+<div class="spinner" id="spinner"></div>
 
 </div>
 
-<div class="toast" id="toast"></div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey:"YOUR_KEY",
-  authDomain:"YOUR_DOMAIN",
-  databaseURL:"YOUR_DB_URL",
-  projectId:"YOUR_ID",
-  storageBucket:"YOUR_BUCKET",
-  messagingSenderId:"YOUR_MSG_ID",
-  appId:"YOUR_APP_ID"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
-
-function showToast(message){
-  const toast=document.getElementById("toast");
-  toast.innerText=message;
-  toast.style.display="block";
-  setTimeout(()=>toast.style.display="none",3000);
+<script>
+function showSpinner(){
+    document.getElementById("spinner").style.display="block";
 }
 
-function showSpinner(id,show){
-  document.getElementById(id).style.display=show?"block":"none";
+function hideSpinner(){
+    document.getElementById("spinner").style.display="none";
 }
 
-window.signUp = async ()=>{
-  try{
-    showSpinner("signupSpinner",true);
+function signUp(){
+    showSpinner();
 
-    const email=emailInput.value;
-    const password=passwordInput.value;
-    const referral=referralInput.value;
+    setTimeout(()=>{
+        hideSpinner();
+        alert("Signup Successful!");
+    },1500);
+}
 
-    const cred=await createUserWithEmailAndPassword(auth,email,password);
+function login(){
+    showSpinner();
 
-    await set(ref(db,"users/"+cred.user.uid),{
-      email,
-      balance:0,
-      referredBy:referral || null,
-      createdAt:Date.now()
-    });
+    setTimeout(()=>{
+        hideSpinner();
+        alert("Login Successful!");
+    },1500);
+}
 
-    showToast("Account Created!");
-    window.location.href="dashboard.html";
-
-  }catch(e){
-    showToast(e.message);
-  }finally{
-    showSpinner("signupSpinner",false);
-  }
-};
-
-window.login = async ()=>{
-  try{
-    showSpinner("loginSpinner",true);
-    await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value);
-    window.location.href="dashboard.html";
-  }catch(e){
-    showToast(e.message);
-  }finally{
-    showSpinner("loginSpinner",false);
-  }
-};
-
-window.resetPassword = async ()=>{
-  try{
-    await sendPasswordResetEmail(auth,emailInput.value);
-    showToast("Password reset email sent");
-  }catch(e){
-    showToast(e.message);
-  }
-};
-
-const emailInput=document.getElementById("email");
-const passwordInput=document.getElementById("password");
-const referralInput=document.getElementById("referral");
-
+function forgotPassword(){
+    const email = document.getElementById("email").value;
+    if(!email){
+        alert("Enter your email first.");
+        return;
+    }
+    alert("Password reset link sent to " + email);
+}
 </script>
 
 </body>
-  </html>
+</html>
