@@ -25,6 +25,7 @@ border:none;
 border-radius:8px;
 cursor:pointer;
 font-weight:bold;
+margin-top:8px;
 }
 .green{background:#22c55e;color:white;}
 .blue{background:#3b82f6;color:white;}
@@ -51,29 +52,42 @@ word-break:break-all;
 <h2>💰 Earn Smart Dashboard</h2>
 
 <div class="card">
-<h3>Profile ID (Email):</h3>
+<h3>Email (Profile ID):</h3>
 <div class="wallet" id="profileId">Loading...</div>
-
 <h3>Balance: $<span id="balance">0.00</span></h3>
 <h3>Earnings: $<span id="earnings">0.00</span></h3>
 </div>
 
 <div class="card">
-<h3>Your Referral Link</h3>
+<h3>Referral Link</h3>
 <div class="wallet" id="refLink"></div>
 </div>
 
 <div class="card">
-<h3>Investment Plan</h3>
+<h3>Select Investment Plan</h3>
 
 <select id="plan">
 <option value="">Select Plan</option>
-<option value="starter">Starter - $5</option>
-<option value="silver">Silver - $10</option>
-<option value="diamond">Diamond - $20</option>
+<option value="starter">Starter - $5 (5% Daily)</option>
+<option value="silver">Silver - $10 (5% Daily)</option>
+<option value="diamond">Diamond - $20 (10% Daily)</option>
 </select>
 
-<button class="green" onclick="activate()">Activate</button>
+<select id="network">
+<option value="">Select Network</option>
+<option value="trc20">USDT TRC20</option>
+<option value="bsc">BEP20 BSC</option>
+<option value="erc20">ERC20 ETH</option>
+</select>
+
+<button class="blue" onclick="generateWallet()">Generate Deposit Address</button>
+
+<div id="depositBox" class="hidden">
+<div class="wallet" id="walletAddress"></div>
+<p id="amountText"></p>
+<input type="number" id="depositAmount" placeholder="Enter Amount Sent">
+<button class="green" onclick="submitDeposit()">Submit Deposit</button>
+</div>
 </div>
 
 <button onclick="logout()" class="blue">Logout</button>
@@ -85,10 +99,9 @@ word-break:break-all;
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set, get, update, onValue }
+import { getDatabase, ref, set, get, update, push, onValue }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-/* YOUR FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
   authDomain: "crypto-gainz-3524d.firebaseapp.com",
@@ -99,29 +112,37 @@ const firebaseConfig = {
   appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getDatabase(app);
 
 let currentUser;
+let requiredAmount=0;
+let selectedPlan="";
 
-/* AUTH CHECK */
-onAuthStateChanged(auth, async (user)=>{
+/* AUTH */
+onAuthStateChanged(auth, async(user)=>{
 if(!user){
+location="index.html";
+return;
+}
+
+/* BLOCK NON EMAIL USERS */
+if(!user.email){
+alert("Please login using Email & Password.");
+signOut(auth);
 location="index.html";
 return;
 }
 
 currentUser=user;
 
-/* SET PROFILE ID AS EMAIL */
+/* SHOW EMAIL */
 document.getElementById("profileId").innerText=user.email;
-
-/* REFERRAL LINK */
 document.getElementById("refLink").innerText=
 window.location.origin+"/?ref="+user.email;
 
-/* CREATE USER IF NOT EXIST */
+/* CREATE USER RECORD */
 const userRef=ref(db,"users/"+user.uid);
 const snap=await get(userRef);
 
@@ -129,48 +150,55 @@ if(!snap.exists()){
 await set(userRef,{
 email:user.email,
 balance:0,
-earnings:0,
-plan:null
+earnings:0
 });
 }
 
-/* LIVE BALANCE UPDATE */
+/* LIVE UPDATE */
 onValue(userRef,(snapshot)=>{
-const data=snapshot.val();
+let data=snapshot.val();
 document.getElementById("balance").innerText=(data.balance||0).toFixed(2);
 document.getElementById("earnings").innerText=(data.earnings||0).toFixed(2);
 });
 
 });
 
-/* ACTIVATE PLAN */
-window.activate=async()=>{
-let plan=document.getElementById("plan").value;
-if(!plan) return alert("Select plan");
+/* GENERATE WALLET */
+window.generateWallet=()=>{
+selectedPlan=document.getElementById("plan").value;
+let net=document.getElementById("network").value;
 
-const userRef=ref(db,"users/"+currentUser.uid);
-const snap=await get(userRef);
-let data=snap.val();
+if(!selectedPlan||!net) return alert("Select plan & network");
 
-let cost=0;
-if(plan==="starter") cost=5;
-if(plan==="silver") cost=10;
-if(plan==="diamond") cost=20;
+if(selectedPlan==="starter") requiredAmount=5;
+if(selectedPlan==="silver") requiredAmount=10;
+if(selectedPlan==="diamond") requiredAmount=20;
 
-if(data.balance<cost){
-alert("Insufficient balance");
-return;
-}
+let wallet="";
+if(net==="trc20") wallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
+if(net==="bsc") wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+if(net==="erc20") wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
 
-await update(userRef,{
-balance:data.balance-cost,
-plan:{
-name:plan,
-start:Date.now()
-}
+document.getElementById("walletAddress").innerText=wallet;
+document.getElementById("amountText").innerText="Send exactly $"+requiredAmount;
+document.getElementById("depositBox").classList.remove("hidden");
+};
+
+/* SUBMIT DEPOSIT */
+window.submitDeposit=async()=>{
+let amt=parseFloat(document.getElementById("depositAmount").value);
+if(amt!==requiredAmount) return alert("Incorrect amount");
+
+await push(ref(db,"deposits"),{
+uid:currentUser.uid,
+email:currentUser.email,
+amount:amt,
+plan:selectedPlan,
+status:"pending",
+date:Date.now()
 });
 
-alert("Plan Activated");
+alert("Deposit submitted. Wait for admin approval.");
 };
 
 /* LOGOUT */
