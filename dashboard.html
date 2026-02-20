@@ -57,7 +57,42 @@ button{
 <div class="stat-box"><h3>Active</h3><p id="active">0</p></div>
 <div class="stat-box"><h3>Matured</h3><p id="matured">0</p></div>
 </div>
+<div class="card">
+<h3>Deposit</h3>
 
+<p><strong>Select Network & Copy Address:</strong></p>
+
+<p>1️⃣ USDT (BEP20)</p>
+<input type="text" value="0xB66E1e0e5452489298bebd7Cd463587E6866baD2" readonly id="usdtBep">
+<button onclick="copyAddress('usdtBep')">Copy</button>
+
+<br><br>
+
+<p>2️⃣ USDT (TRC20)</p>
+<input type="text" value="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe" readonly id="usdtTrc">
+<button onclick="copyAddress('usdtTrc')">Copy</button>
+
+<br><br>
+
+<p>3️⃣ BNB (BEP20)</p>
+<input type="text" value="0xB66E1e0e5452489298bebd7Cd463587E6866baD2" readonly id="bnbBep">
+<button onclick="copyAddress('bnbBep')">Copy</button>
+
+<hr>
+
+<h4>After Payment, Fill Deposit Form</h4>
+
+<input type="text" id="profileId" placeholder="Enter Your Profile ID">
+<input type="number" id="depositAmount" placeholder="Amount Sent">
+<select id="network">
+  <option value="USDT BEP20">USDT BEP20</option>
+  <option value="USDT TRC20">USDT TRC20</option>
+  <option value="BNB BEP20">BNB BEP20</option>
+</select>
+
+<button onclick="submitDeposit()">Submit Deposit</button>
+
+</div>
 <div class="card">
 <h3>Invest</h3>
 <button onclick="invest(5)">Invest $5</button>
