@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Earn Smart - Fintech Dashboard</title>
+<title>Earn Smart - Pro Fintech</title>
 
 <style>
 body{
@@ -13,7 +13,6 @@ body{
   overflow-x:hidden;
 }
 
-/* SILVER DOLLAR ANIMATION */
 .dollar{
   position:fixed;
   top:-50px;
@@ -22,11 +21,9 @@ body{
   animation:fall linear infinite;
   opacity:0.4;
 }
-@keyframes fall{
-  to{transform:translateY(110vh);}
-}
+@keyframes fall{to{transform:translateY(110vh);}}
 
-.container{padding:20px;max-width:950px;margin:auto;}
+.container{padding:20px;max-width:1000px;margin:auto;}
 
 .card{
   background:rgba(255,255,255,0.08);
@@ -37,65 +34,46 @@ body{
   box-shadow:0 0 20px rgba(192,192,192,0.2);
 }
 
-h2,h3{margin-top:0;}
-
 .profile{
   background:#111827;
   padding:10px;
   border-radius:10px;
   margin-bottom:20px;
   font-size:14px;
-  color:#cbd5e1;
 }
 
 button{
-  padding:12px;
+  padding:10px;
   border:none;
-  border-radius:10px;
-  background:linear-gradient(45deg,#c0c0c0,#94a3b8);
-  color:black;
-  font-weight:bold;
+  border-radius:8px;
   cursor:pointer;
-  transition:0.3s;
+  font-weight:bold;
 }
-button:hover{transform:scale(1.05);}
+
+.approve-btn{background:#22c55e;color:white;}
+.reject-btn{background:#ef4444;color:white;}
 
 input,select{
   width:100%;
-  padding:12px;
+  padding:10px;
   margin:8px 0;
-  border-radius:10px;
+  border-radius:8px;
   border:none;
 }
 
 .wallet-box{
   background:#0f172a;
-  padding:12px;
+  padding:10px;
   border-radius:8px;
   word-break:break-all;
-  font-size:13px;
 }
 
 .hidden{display:none;}
-
-.spinner{
-  border:4px solid rgba(255,255,255,0.2);
-  border-top:4px solid silver;
-  border-radius:50%;
-  width:25px;
-  height:25px;
-  animation:spin 1s linear infinite;
-  margin:auto;
-}
-@keyframes spin{100%{transform:rotate(360deg);}}
-
-.success{color:#22c55e;margin-top:8px;}
-.small{font-size:12px;color:#cbd5e1;}
+.price{font-size:14px;margin:5px 0;}
 </style>
 </head>
 <body>
 
-<!-- SILVER DOLLARS -->
 <script>
 for(let i=0;i<25;i++){
 let span=document.createElement("span");
@@ -115,19 +93,19 @@ document.body.appendChild(span);
 Profile ID: <span id="profileEmail">Loading...</span>
 </div>
 
+<!-- LIVE CRYPTO PRICES -->
+<div class="card">
+<h3>Live Crypto Prices</h3>
+<div id="prices"></div>
+</div>
+
 <div class="card">
 <h3>Balance: $<span id="balance">0</span></h3>
 </div>
 
-<!-- DEPOSIT SECTION -->
+<!-- DEPOSIT -->
 <div class="card">
-<h3>Activate Investment Plan</h3>
-
-<select id="planSelect">
-<option value="starter">Starter - $5</option>
-<option value="silver">Silver - $10</option>
-<option value="diamond">Diamond - $20</option>
-</select>
+<h3>Activate Investment</h3>
 
 <select id="networkSelect">
 <option value="">Select Network</option>
@@ -139,37 +117,18 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <button onclick="showWallet()">Generate Deposit Address</button>
 
 <div id="walletSection" class="hidden">
-
 <div class="wallet-box" id="walletAddress"></div>
+<button onclick="copyWallet()">Copy Wallet</button>
 
-<h4>Confirm Deposit</h4>
-<input type="text" id="depositEmail" placeholder="Your Profile ID (Email)">
 <input type="number" id="depositAmount" placeholder="Amount Sent">
-
 <button onclick="submitDeposit()">Submit Deposit</button>
-
-<div id="depositLoading" class="hidden spinner"></div>
-<div id="depositSuccess" class="success hidden">
-Deposit submitted. Awaiting approval.
+</div>
 </div>
 
-</div>
-
-<p class="small">Admin must approve deposit before balance updates.</p>
-</div>
-
-<!-- WITHDRAW -->
-<div class="card">
-<h3>Withdraw</h3>
-<input type="number" id="withdrawAmount" placeholder="Amount">
-<input type="text" id="withdrawWallet" placeholder="Wallet Address">
-<select id="withdrawNetwork">
-<option>TRC20</option>
-<option>BEP20</option>
-<option>ERC20</option>
-</select>
-<button onclick="requestWithdraw()">Request Withdrawal</button>
-<div id="withdrawLoading" class="hidden spinner"></div>
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="card hidden">
+<h3>Admin Approve Panel</h3>
+<div id="depositRequests"></div>
 </div>
 
 </div>
@@ -178,7 +137,7 @@ Deposit submitted. Awaiting approval.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
@@ -190,97 +149,120 @@ const firebaseConfig = {
   appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
+const ADMIN_EMAIL="admin@email.com"; // CHANGE THIS
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getDatabase(app);
 
 let selectedWallet="";
-let selectedNetwork="";
 
-/* AUTH CHECK */
+/* AUTH */
 onAuthStateChanged(auth,(user)=>{
 if(!user){window.location="index.html";return;}
 
 document.getElementById("profileEmail").innerText=user.email;
-document.getElementById("depositEmail").value=user.email;
 
 onValue(ref(db,'users/'+user.uid),(snap)=>{
 document.getElementById("balance").innerText=
 (snap.val()?.balance||0).toFixed(2);
 });
+
+if(user.email===ADMIN_EMAIL){
+document.getElementById("adminPanel").classList.remove("hidden");
+loadDeposits();
+}
 });
 
-/* SHOW WALLET */
+/* WALLET */
 window.showWallet=()=>{
-const network=document.getElementById("networkSelect").value;
-if(!network) return alert("Select network");
+const net=document.getElementById("networkSelect").value;
+if(!net) return alert("Select network");
 
-if(network==="trc20"){
-selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
-selectedNetwork="USDT TRC20";
-}
-if(network==="bsc"){
-selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-selectedNetwork="BSC BEP20";
-}
-if(network==="erc20"){
-selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-selectedNetwork="USDT ERC20";
-}
+if(net==="trc20") selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
+if(net==="bsc") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+if(net==="erc20") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
 
 document.getElementById("walletAddress").innerText=selectedWallet;
 document.getElementById("walletSection").classList.remove("hidden");
 };
 
+window.copyWallet=()=>{
+navigator.clipboard.writeText(selectedWallet);
+alert("Copied!");
+};
+
 /* SUBMIT DEPOSIT */
 window.submitDeposit=async()=>{
 const user=auth.currentUser;
-const plan=document.getElementById("planSelect").value;
-const email=document.getElementById("depositEmail").value;
 const amount=parseFloat(document.getElementById("depositAmount").value);
-
-if(!email||!amount) return alert("Fill all fields");
-
-document.getElementById("depositLoading").classList.remove("hidden");
+if(!amount) return alert("Enter amount");
 
 await push(ref(db,'deposits'),{
 uid:user.uid,
-email,
 amount,
-plan,
-network:selectedNetwork,
 status:"pending",
 date:Date.now()
 });
-
-document.getElementById("depositLoading").classList.add("hidden");
-document.getElementById("depositSuccess").classList.remove("hidden");
+alert("Deposit Submitted");
 };
 
-/* WITHDRAW */
-window.requestWithdraw=async()=>{
-const user=auth.currentUser;
-const amount=parseFloat(document.getElementById("withdrawAmount").value);
-const wallet=document.getElementById("withdrawWallet").value;
-const network=document.getElementById("withdrawNetwork").value;
-
-if(!amount||!wallet) return alert("Fill all fields");
-
-document.getElementById("withdrawLoading").classList.remove("hidden");
-
-await push(ref(db,'withdrawals/'+user.uid),{
-amount,
-wallet,
-network,
-status:"pending",
-date:Date.now()
+/* ADMIN LOAD DEPOSITS */
+function loadDeposits(){
+onValue(ref(db,'deposits'),(snap)=>{
+const data=snap.val();
+let html="";
+for(const id in data){
+const d=data[id];
+if(d.status==="pending"){
+html+=`
+<div style="margin-bottom:10px;">
+User: ${d.uid}<br>
+Amount: $${d.amount}<br>
+<button class="approve-btn" onclick="approveDeposit('${id}','${d.uid}',${d.amount})">Approve</button>
+<button class="reject-btn" onclick="rejectDeposit('${id}')">Reject</button>
+</div>`;
+}
+}
+document.getElementById("depositRequests").innerHTML=html||"No pending deposits";
 });
+}
 
-document.getElementById("withdrawLoading").classList.add("hidden");
-alert("Withdrawal request submitted");
+window.approveDeposit=async(id,uid,amount)=>{
+const userRef=ref(db,'users/'+uid);
+const snap=await get(userRef);
+let bal=snap.val()?.balance||0;
+
+await update(userRef,{balance:bal+amount});
+await update(ref(db,'deposits/'+id),{status:"approved"});
+alert("Approved & Balance Updated");
 };
+
+window.rejectDeposit=async(id)=>{
+await update(ref(db,'deposits/'+id),{status:"rejected"});
+alert("Rejected");
+};
+
+/* LIVE CRYPTO PRICES */
+async function loadPrices(){
+try{
+const res=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,tether&vs_currencies=usd");
+const data=await res.json();
+document.getElementById("prices").innerHTML=`
+<div class="price">BTC: $${data.bitcoin.usd}</div>
+<div class="price">ETH: $${data.ethereum.usd}</div>
+<div class="price">BNB: $${data.binancecoin.usd}</div>
+<div class="price">USDT: $${data.tether.usd}</div>
+`;
+}catch(e){
+document.getElementById("prices").innerText="Price loading failed";
+}
+}
+
+loadPrices();
+setInterval(loadPrices,30000);
 
 </script>
 
 </body>
-</html>
+  </html>
