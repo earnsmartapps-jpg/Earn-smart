@@ -187,7 +187,23 @@ Deposit submitted. Awaiting approval.
 </div>
 
 </div>
+<!-- ======================= -->
+<!-- ===== ADMIN PANEL ===== -->
+<!-- ======================= -->
 
+<div id="adminPanel" class="container hidden">
+  <h2>Admin Panel</h2>
+
+  <div class="card">
+    <h3>Pending Deposits</h3>
+    <div id="adminDeposits"></div>
+  </div>
+
+  <div class="card">
+    <h3>Pending Withdrawals</h3>
+    <div id="adminWithdrawals"></div>
+  </div>
+</div>
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -305,6 +321,160 @@ document.getElementById("withdrawLoading").classList.add("hidden");
 alert("Withdrawal request submitted");
 };
 
+  /* ============================= */
+/* ===== REFERRAL SYSTEM ======= */
+/* ============================= */
+
+const ADMIN_EMAIL = "earnsmartapps@gmail.com"; // CHANGE TO YOUR ADMIN EMAIL
+
+let currentUserData = null;
+
+onAuthStateChanged(auth,(user)=>{
+if(!user) return;
+
+const urlParams = new URLSearchParams(window.location.search);
+const referralFromLink = urlParams.get("ref");
+
+const userRef = ref(db,'users/'+user.uid);
+
+onValue(userRef,(snap)=>{
+if(!snap.exists()){
+// new user create profile
+push(ref(db,'users/'+user.uid),{
+email:user.email,
+balance:0,
+referralCode:user.email,
+referredBy:referralFromLink || null,
+planActive:false,
+planExpire:0
+});
+}
+currentUserData = snap.val();
+});
+
+/* ADMIN ACCESS */
+if(user.email === ADMIN_EMAIL){
+document.getElementById("adminPanel").classList.remove("hidden");
+loadAdminDeposits();
+loadAdminWithdrawals();
+}
+});
+
+/* ============================= */
+/* ===== ADMIN DEPOSITS ======== */
+/* ============================= */
+
+function loadAdminDeposits(){
+onValue(ref(db,'deposits'),(snap)=>{
+let html="";
+snap.forEach(data=>{
+const d=data.val();
+if(d.status==="pending"){
+html+=`
+<div class="wallet-box">
+Email: ${d.email}<br>
+Amount: $${d.amount}<br>
+Plan: ${d.plan}<br>
+<button onclick="approveDeposit('${data.key}','${d.uid}','${d.amount}','${d.plan}')">
+Approve
+</button>
+</div><br>`;
+}
+});
+document.getElementById("adminDeposits").innerHTML=html;
+});
+}
+
+window.approveDeposit=async(id,uid,amount,plan)=>{
+const userBalanceRef=ref(db,'users/'+uid+'/balance');
+const planExpire = Date.now() + (30*24*60*60*1000);
+
+await push(ref(db,'transactions/'+uid),{
+type:"deposit",
+amount,
+date:Date.now()
+});
+
+await fetch(`${firebaseConfig.databaseURL}/deposits/${id}.json`,{
+method:"PATCH",
+body:JSON.stringify({status:"approved"})
+});
+
+import { get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const snap = await get(ref(db,'users/'+uid));
+const currentBal = snap.val().balance || 0;
+
+await update(ref(db,'users/'+uid),{
+balance: currentBal + parseFloat(amount),
+planActive:true,
+planExpire:planExpire
+});
+
+/* REFERRAL BONUS */
+if(snap.val().referredBy){
+const refEmail=snap.val().referredBy;
+onValue(ref(db,'users'),(all)=>{
+all.forEach(u=>{
+if(u.val().email===refEmail){
+update(ref(db,'users/'+u.key),{
+balance:(u.val().balance||0)+1
+});
+}
+});
+},{onlyOnce:true});
+}
+
+alert("Deposit Approved");
+};
+
+/* ============================= */
+/* ===== ADMIN WITHDRAW ======== */
+/* ============================= */
+
+function loadAdminWithdrawals(){
+onValue(ref(db,'withdrawals'),(snap)=>{
+let html="";
+snap.forEach(userSnap=>{
+userSnap.forEach(w=>{
+if(w.val().status==="pending"){
+html+=`
+<div class="wallet-box">
+User: ${userSnap.key}<br>
+Amount: $${w.val().amount}<br>
+<button onclick="approveWithdraw('${userSnap.key}','${w.key}','${w.val().amount}')">
+Approve
+</button>
+</div><br>`;
+}
+});
+});
+document.getElementById("adminWithdrawals").innerHTML=html;
+});
+}
+
+window.approveWithdraw=async(uid,wid,amount)=>{
+import { get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const snap = await get(ref(db,'users/'+uid));
+const bal = snap.val().balance || 0;
+
+if(bal < amount){
+alert("Insufficient balance");
+return;
+}
+
+await update(ref(db,'users/'+uid),{
+balance: bal - parseFloat(amount)
+});
+
+await fetch(`${firebaseConfig.databaseURL}/withdrawals/${uid}/${wid}.json`,{
+method:"PATCH",
+body:JSON.stringify({status:"approved"})
+});
+
+alert("Withdrawal Approved");
+};
 </script>
 
 </body>
