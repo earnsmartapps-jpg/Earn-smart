@@ -2,55 +2,35 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Earn Smart - Dashboard</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#0f172a;
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#0f2027,#1e3c72,#2a5298);
   color:white;
 }
-.container{
-  padding:20px;
-  max-width:1000px;
-  margin:auto;
-}
-.stats{
-  display:flex;
-  gap:15px;
-  flex-wrap:wrap;
-  margin-bottom:20px;
-}
-.stat-box{
-  flex:1;
-  min-width:150px;
-  background:#1e293b;
-  padding:15px;
-  border-radius:10px;
-  text-align:center;
-}
+.container{padding:20px;max-width:900px;margin:auto;}
 .card{
-  background:#1e293b;
-  padding:15px;
-  border-radius:10px;
+  background:rgba(255,255,255,0.08);
+  padding:20px;
+  border-radius:12px;
   margin-bottom:20px;
 }
 button{
-  padding:10px 15px;
-  margin:5px;
+  padding:10px;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
   background:#22c55e;
   color:white;
   cursor:pointer;
 }
-input, select{
-  padding:8px;
-  margin:5px 0;
+input,select{
   width:100%;
-  border-radius:6px;
+  padding:10px;
+  margin:8px 0;
+  border-radius:8px;
   border:none;
 }
 </style>
@@ -58,77 +38,47 @@ input, select{
 <body>
 
 <div class="container">
+
 <h2>Dashboard</h2>
 
-<div class="stats">
-<div class="stat-box"><h3>Total</h3><p id="total">$0</p></div>
-<div class="stat-box"><h3>Active</h3><p id="active">0</p></div>
-<div class="stat-box"><h3>Matured</h3><p id="matured">0</p></div>
-</div>
-
 <div class="card">
-<h3>Deposit</h3>
-
-<p><strong>Select Network & Copy Address:</strong></p>
-
-<p>USDT (BEP20)</p>
-<input type="text" value="0xB66E1e0e5452489298bebd7Cd463587E6866baD2" readonly id="usdtBep">
-<button onclick="copyAddress('usdtBep')">Copy</button>
-
-<p>USDT (TRC20)</p>
-<input type="text" value="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe" readonly id="usdtTrc">
-<button onclick="copyAddress('usdtTrc')">Copy</button>
-
-<p>BNB (BEP20)</p>
-<input type="text" value="0xB66E1e0e5452489298bebd7Cd463587E6866baD2" readonly id="bnbBep">
-<button onclick="copyAddress('bnbBep')">Copy</button>
-
-<hr>
-
-<h4>After Payment, Fill Deposit Form</h4>
-
-<input type="text" id="profileId" placeholder="Enter Your Profile ID">
-<input type="number" id="depositAmount" placeholder="Amount Sent">
-<select id="network">
-  <option value="USDT BEP20">USDT BEP20</option>
-  <option value="USDT TRC20">USDT TRC20</option>
-  <option value="BNB BEP20">BNB BEP20</option>
-</select>
-
-<button onclick="submitDeposit()">Submit Deposit</button>
+<h3>Balance: $<span id="balance">0</span></h3>
 </div>
 
 <div class="card">
 <h3>Invest</h3>
-<button onclick="invest(5)">Invest $5</button>
-<button onclick="invest(10)">Invest $10</button>
-<button onclick="invest(20)">Invest $20</button>
+<select id="planSelect">
+<option value="starter">Starter - $5 (5% daily 30 days)</option>
+<option value="silver">Silver - $10 (5% daily 30 days)</option>
+<option value="diamond">Diamond - $20 (10% daily 30 days)</option>
+</select>
+<button onclick="investPlan()">Invest</button>
 </div>
 
 <div class="card">
-<h3>Chart</h3>
-<canvas id="chart"></canvas>
+<h3>Withdraw</h3>
+<input type="number" id="withdrawAmount" placeholder="Amount">
+<input type="text" id="withdrawWallet" placeholder="Wallet">
+<select id="withdrawNetwork">
+<option>TRC20</option>
+<option>BSC BEP20</option>
+<option>BNB BEP20</option>
+</select>
+<button onclick="requestWithdraw()">Request Withdrawal</button>
 </div>
 
 <div class="card">
-<h3>Transactions</h3>
-<div id="transactions"></div>
+<h3>My Investments</h3>
+<div id="investments"></div>
 </div>
 
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { 
-  getDatabase, 
-  ref, 
-  push, 
-  onValue, 
-  get, 
-  update 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
   authDomain: "crypto-gainz-3524d.firebaseapp.com",
@@ -138,141 +88,122 @@ const firebaseConfig = {
   messagingSenderId: "270349829717",
   appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
 const LOCK = 30*24*60*60*1000;
-let chart;
 
 onAuthStateChanged(auth,(user)=>{
-  if(!user){
-    window.location.href="index.html";
-    return;
-  }
-
-  loadInvestments(user);
-  loadTransactions(user);
+if(!user){window.location="index.html";return;}
+loadUser(user);
+loadInvestments(user);
 });
 
+/* LOAD USER */
+function loadUser(user){
+onValue(ref(db,'users/'+user.uid),(snap)=>{
+document.getElementById("balance").innerText =
+(snap.val()?.balance||0).toFixed(2);
+});
+}
+
+/* INVEST */
+window.investPlan = async()=>{
+const user=auth.currentUser;
+const plan=document.getElementById("planSelect").value;
+
+let amount= plan==="starter"?5:plan==="silver"?10:20;
+
+const snap=await get(ref(db,'users/'+user.uid));
+let balance=snap.val()?.balance||0;
+
+if(balance<amount) return alert("Insufficient balance");
+
+await update(ref(db,'users/'+user.uid),{
+balance:balance-amount
+});
+
+await push(ref(db,'investments/'+user.uid),{
+amount,
+plan,
+startDate:Date.now(),
+paid:false
+});
+
+alert("Investment Started");
+};
+
+/* WITHDRAW (ANTI NEGATIVE + ANTI MULTIPLE PENDING) */
+window.requestWithdraw = async()=>{
+const user=auth.currentUser;
+const amount=parseFloat(document.getElementById("withdrawAmount").value);
+const wallet=document.getElementById("withdrawWallet").value;
+const network=document.getElementById("withdrawNetwork").value;
+
+if(!amount||!wallet) return alert("Fill all fields");
+
+const userSnap=await get(ref(db,'users/'+user.uid));
+let balance=userSnap.val()?.balance||0;
+
+if(amount>balance) return alert("Cannot withdraw more than balance");
+
+const pendingSnap=await get(ref(db,'withdrawals/'+user.uid));
+if(pendingSnap.exists()) return alert("You already have pending withdrawal");
+
+await push(ref(db,'withdrawals/'+user.uid),{
+amount,
+wallet,
+network,
+status:"pending",
+date:Date.now()
+});
+
+alert("Withdrawal request submitted");
+};
+
+/* LOAD INVESTMENTS + MANUAL MATURITY */
 function loadInvestments(user){
-  const investRef = ref(db,'investments/'+user.uid);
+onValue(ref(db,'investments/'+user.uid),(snap)=>{
+const data=snap.val();
+if(!data) return;
 
-  onValue(investRef,(snap)=>{
-    const data=snap.val();
-    if(!data){
-      document.getElementById("total").innerText="$0";
-      return;
-    }
+let html="";
 
-    let total=0, active=0, matured=0;
-    const amounts=[];
+for(const id in data){
+const inv=data[id];
+const days=Math.floor((Date.now()-inv.startDate)/(24*60*60*1000));
 
-    Object.values(data).forEach(inv=>{
-      total+=inv.amount;
-      amounts.push(inv.amount);
-
-      if(Date.now()-inv.startDate>=LOCK){
-        matured++;
-      } else {
-        active++;
-      }
-    });
-
-    document.getElementById("total").innerText="$"+total;
-    document.getElementById("active").innerText=active;
-    document.getElementById("matured").innerText=matured;
-
-    if(chart) chart.destroy();
-
-    chart=new Chart(document.getElementById("chart"),{
-      type:"bar",
-      data:{
-        labels:amounts.map((_,i)=>"Investment "+(i+1)),
-        datasets:[{label:"Amount",data:amounts}]
-      }
-    });
-  });
+if(days>=30 && !inv.paid){
+html+=`
+<div>
+Plan $${inv.amount} matured
+<button onclick="claimProfit('${id}',${inv.amount})">Claim</button>
+</div>`;
+}else{
+html+=`<div>Plan $${inv.amount} - ${days}/30 days</div>`;
+}
+}
+document.getElementById("investments").innerHTML=html;
+});
 }
 
-function loadTransactions(user){
-  const transRef = ref(db,'transactions/'+user.uid);
+window.claimProfit = async(id,amount)=>{
+const user=auth.currentUser;
+const rate= amount===20?0.10:0.05;
+const totalProfit=amount + (amount*rate*30);
 
-  onValue(transRef,(snap)=>{
-    const data=snap.val();
-    if(!data){
-      document.getElementById("transactions").innerHTML="No transactions yet";
-      return;
-    }
+const userRef=ref(db,'users/'+user.uid);
+const snap=await get(userRef);
+let balance=snap.val()?.balance||0;
 
-    let html="";
-    Object.values(data).forEach(t=>{
-      html+=`<div>${t.type} - $${t.amount}</div>`;
-    });
+await update(userRef,{balance:balance+totalProfit});
+await update(ref(db,'investments/'+user.uid+'/'+id),{paid:true});
 
-    document.getElementById("transactions").innerHTML=html;
-  });
-}
-
-window.invest = async (amount) => {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const snap = await get(ref(db,'users/'+user.uid));
-  const balance = snap.val()?.balance || 0;
-
-  if (balance < amount) {
-    alert("Insufficient balance. Deposit first.");
-    return;
-  }
-
-  await update(ref(db,'users/'+user.uid),{
-    balance: balance - amount
-  });
-
-  await push(ref(db,'investments/'+user.uid),{
-    amount,
-    startDate: Date.now()
-  });
-
-  await push(ref(db,'transactions/'+user.uid),{
-    type:"investment",
-    amount
-  });
-
-  alert("Investment Successful");
-};
-
-window.submitDeposit = async () => {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const profileId = document.getElementById("profileId").value;
-  const amount = parseFloat(document.getElementById("depositAmount").value);
-  const network = document.getElementById("network").value;
-
-  if (!profileId || !amount || amount <= 0)
-    return alert("Fill all fields correctly");
-
-  await push(ref(db, 'deposits/' + user.uid), {
-    profileId,
-    amount,
-    network,
-    status: "pending",
-    date: Date.now()
-  });
-
-  alert("Deposit Submitted. Wait for admin approval.");
-};
-
-window.copyAddress = (id) => {
-  const input = document.getElementById(id);
-  input.select();
-  document.execCommand("copy");
-  alert("Address Copied");
+alert("Profit Claimed");
 };
 
 </script>
-
 </body>
 </html>
