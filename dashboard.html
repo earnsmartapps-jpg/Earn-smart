@@ -2,310 +2,325 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Earn Smart - Fintech Dashboard</title>
+<title>Earn Smart Dashboard</title>
 
 <style>
 body{
-  margin:0;
-  font-family:'Segoe UI',sans-serif;
-  background:linear-gradient(135deg,#0f172a,#1e293b,#334155);
-  color:white;
-  overflow-x:hidden;
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#0f172a,#1e293b,#0f172a);
+color:white;
+overflow-x:hidden;
 }
-
-/* SILVER DOLLAR ANIMATION */
-.dollar{
-  position:fixed;
-  top:-50px;
-  color:silver;
-  font-size:20px;
-  animation:fall linear infinite;
-  opacity:0.4;
-}
-@keyframes fall{
-  to{transform:translateY(110vh);}
-}
-
-.container{padding:20px;max-width:950px;margin:auto;}
-
+.container{max-width:1100px;margin:auto;padding:20px;}
 .card{
-  background:rgba(255,255,255,0.08);
-  backdrop-filter:blur(10px);
-  padding:20px;
-  border-radius:15px;
-  margin-bottom:20px;
-  box-shadow:0 0 20px rgba(192,192,192,0.2);
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(15px);
+padding:20px;
+border-radius:15px;
+margin-bottom:20px;
+box-shadow:0 0 25px rgba(0,255,150,0.1);
 }
-
 h2,h3{margin-top:0;}
-
-.profile{
-  background:#111827;
-  padding:10px;
-  border-radius:10px;
-  margin-bottom:20px;
-  font-size:14px;
-  color:#cbd5e1;
-}
-
 button{
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  background:linear-gradient(45deg,#c0c0c0,#94a3b8);
-  color:black;
-  font-weight:bold;
-  cursor:pointer;
-  transition:0.3s;
+padding:10px 15px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+margin-top:10px;
 }
-button:hover{transform:scale(1.05);}
-
-.copy-btn{
-  margin-top:10px;
-  background:linear-gradient(45deg,#38bdf8,#0ea5e9);
-  color:white;
-}
-
+.green{background:#22c55e;color:white;}
+.red{background:#ef4444;color:white;}
+.blue{background:#3b82f6;color:white;}
 input,select{
-  width:100%;
-  padding:12px;
-  margin:8px 0;
-  border-radius:10px;
-  border:none;
+width:100%;
+padding:10px;
+margin:6px 0;
+border-radius:8px;
+border:none;
 }
-
-.wallet-box{
-  background:#0f172a;
-  padding:12px;
-  border-radius:8px;
-  word-break:break-all;
-  font-size:13px;
+.wallet{
+background:#111827;
+padding:10px;
+border-radius:8px;
+word-break:break-all;
+margin:10px 0;
 }
-
 .hidden{display:none;}
 
-.spinner{
-  border:4px solid rgba(255,255,255,0.2);
-  border-top:4px solid silver;
-  border-radius:50%;
-  width:25px;
-  height:25px;
-  animation:spin 1s linear infinite;
-  margin:auto;
+.dollar{
+position:fixed;
+top:-50px;
+color:#22c55e;
+font-size:20px;
+animation:fall linear infinite;
+opacity:0.3;
 }
-@keyframes spin{100%{transform:rotate(360deg);}}
-
-.success{color:#22c55e;margin-top:8px;}
-.small{font-size:12px;color:#cbd5e1;}
+@keyframes fall{
+to{transform:translateY(110vh);}
+}
 </style>
 </head>
 <body>
 
-<!-- SILVER DOLLARS -->
 <script>
-for(let i=0;i<25;i++){
-let span=document.createElement("span");
-span.className="dollar";
-span.innerText="$";
-span.style.left=Math.random()*100+"vw";
-span.style.animationDuration=(5+Math.random()*5)+"s";
-document.body.appendChild(span);
+for(let i=0;i<30;i++){
+let s=document.createElement("span");
+s.className="dollar";
+s.innerText="$";
+s.style.left=Math.random()*100+"vw";
+s.style.animationDuration=(4+Math.random()*6)+"s";
+document.body.appendChild(s);
 }
 </script>
 
 <div class="container">
 
-<h2>Earn Smart Dashboard</h2>
-
-<div class="profile">
-Profile ID: <span id="profileEmail">Loading...</span>
-</div>
+<h2>💰 Earn Smart Dashboard</h2>
 
 <div class="card">
-<h3>Balance: $<span id="balance">0</span></h3>
+<h3>Profile ID: <span id="uid"></span></h3>
+<h3>Balance: $<span id="balance">0.00</span></h3>
+<h3>Active Earnings: $<span id="earnings">0.00</span></h3>
 </div>
 
-<!-- DEPOSIT SECTION -->
+<!-- INVESTMENT PLANS -->
 <div class="card">
-<h3>Activate Investment Plan</h3>
+<h3>Investment Plans</h3>
 
-<select id="planSelect">
-<option value="starter">Starter - $5</option>
-<option value="silver">Silver - $10</option>
-<option value="diamond">Diamond - $20</option>
+<select id="plan">
+<option value="">Select Plan</option>
+<option value="starter">Starter - $5 (5% Daily 30 Days)</option>
+<option value="silver">Silver - $10 (5% Daily 30 Days)</option>
+<option value="diamond">Diamond - $20 (10% Daily 30 Days)</option>
 </select>
 
-<select id="networkSelect">
+<select id="network">
 <option value="">Select Network</option>
 <option value="trc20">USDT TRC20</option>
-<option value="bsc">BSC BEP20</option>
-<option value="erc20">USDT ERC20</option>
+<option value="bsc">BEP20 BSC</option>
+<option value="erc20">ERC20 ETH</option>
 </select>
 
-<button onclick="showWallet()">Generate Deposit Address</button>
+<button class="blue" onclick="showWallet()">Generate Deposit Address</button>
 
-<div id="walletSection" class="hidden">
-
-<div class="wallet-box" id="walletAddress"></div>
-
-<button class="copy-btn hidden" id="copyBtn" onclick="copyWallet()">
-Copy Wallet Address
-</button>
-
-<div id="copySuccess" class="success hidden">
-Wallet address copied successfully!
+<div id="depositBox" class="hidden">
+<div class="wallet" id="walletAddress"></div>
+<p id="amountText"></p>
+<input type="number" id="depositAmount" placeholder="Enter Amount Sent">
+<button class="green" onclick="submitDeposit()">Submit Deposit</button>
+</div>
 </div>
 
-<h4>Confirm Deposit</h4>
-<input type="text" id="depositEmail" placeholder="Your Profile ID (Email)">
-<input type="number" id="depositAmount" placeholder="Amount Sent">
-
-<button onclick="submitDeposit()">Submit Deposit</button>
-
-<div id="depositLoading" class="hidden spinner"></div>
-<div id="depositSuccess" class="success hidden">
-Deposit submitted. Awaiting approval.
-</div>
-
-</div>
-
-<p class="small">Admin must approve deposit before balance updates.</p>
+<!-- ACTIVATE -->
+<div class="card">
+<h3>Activate Investment</h3>
+<button class="green" onclick="activateInvestment()">Activate</button>
 </div>
 
 <!-- WITHDRAW -->
 <div class="card">
-<h3>Withdraw</h3>
-<input type="number" id="withdrawAmount" placeholder="Amount">
-<input type="text" id="withdrawWallet" placeholder="Wallet Address">
-<select id="withdrawNetwork">
-<option>TRC20</option>
-<option>BEP20</option>
-<option>ERC20</option>
-</select>
-<button onclick="requestWithdraw()">Request Withdrawal</button>
-<div id="withdrawLoading" class="hidden spinner"></div>
+<h3>Withdraw (Available After 30 Days)</h3>
+<button class="green" onclick="withdraw()">Withdraw</button>
+</div>
+
+<!-- REFERRAL -->
+<div class="card">
+<h3>Referral</h3>
+<p>Your Referral ID:</p>
+<div class="wallet" id="refId"></div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminPanel" class="card hidden">
+<h3>Admin Panel - Approve Deposits</h3>
+<div id="deposits"></div>
 </div>
 
 </div>
 
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { auth, db } from './firebase.js';
+import { ref, set, get, update, push, onValue }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
-  authDomain: "crypto-gainz-3524d.firebaseapp.com",
-  databaseURL: "https://crypto-gainz-3524d-default-rtdb.firebaseio.com",
-  projectId: "crypto-gainz-3524d",
-  storageBucket: "crypto-gainz-3524d.firebasestorage.app",
-  messagingSenderId: "270349829717",
-  appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
-};
+const ADMIN_EMAIL="admin@email.com";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
+let selectedPlan="";
+let requiredAmount=0;
+let wallet="";
 
-let selectedWallet="";
-let selectedNetwork="";
+auth.onAuthStateChanged(async user=>{
+if(!user){location="index.html";return;}
 
-/* AUTH CHECK */
-onAuthStateChanged(auth,(user)=>{
-if(!user){window.location="index.html";return;}
+document.getElementById("uid").innerText=user.uid;
+document.getElementById("refId").innerText=user.uid;
 
-document.getElementById("profileEmail").innerText=user.email;
-document.getElementById("depositEmail").value=user.email;
+const userRef=ref(db,'users/'+user.uid);
+let snap=await get(userRef);
 
-onValue(ref(db,'users/'+user.uid),(snap)=>{
-document.getElementById("balance").innerText=
-(snap.val()?.balance||0).toFixed(2);
+if(!snap.exists()){
+await set(userRef,{
+balance:0,
+earnings:0,
+investment:null
 });
+}
+
+onValue(userRef,s=>{
+let data=s.val();
+document.getElementById("balance").innerText=(data.balance||0).toFixed(2);
+document.getElementById("earnings").innerText=(data.earnings||0).toFixed(2);
+
+calculateProfit(user.uid,data);
+});
+
+if(user.email===ADMIN_EMAIL){
+document.getElementById("adminPanel").classList.remove("hidden");
+loadDeposits();
+}
 });
 
 /* SHOW WALLET */
 window.showWallet=()=>{
-const network=document.getElementById("networkSelect").value;
-if(!network) return alert("Select network");
+selectedPlan=document.getElementById("plan").value;
+let net=document.getElementById("network").value;
 
-if(network==="trc20"){
-selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
-selectedNetwork="USDT TRC20";
-}
-if(network==="bsc"){
-selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-selectedNetwork="BSC BEP20";
-}
-if(network==="erc20"){
-selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-selectedNetwork="USDT ERC20";
-}
+if(!selectedPlan||!net) return alert("Select plan & network");
 
-document.getElementById("walletAddress").innerText=selectedWallet;
-document.getElementById("walletSection").classList.remove("hidden");
-document.getElementById("copyBtn").classList.remove("hidden");
-};
+if(selectedPlan==="starter") requiredAmount=5;
+if(selectedPlan==="silver") requiredAmount=10;
+if(selectedPlan==="diamond") requiredAmount=20;
 
-/* COPY WALLET */
-window.copyWallet=()=>{
-navigator.clipboard.writeText(selectedWallet).then(()=>{
-document.getElementById("copySuccess").classList.remove("hidden");
-setTimeout(()=>{
-document.getElementById("copySuccess").classList.add("hidden");
-},2000);
-});
+if(net==="trc20") wallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
+if(net==="bsc") wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+if(net==="erc20") wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+
+document.getElementById("walletAddress").innerText=wallet;
+document.getElementById("amountText").innerText="Send exactly $"+requiredAmount;
+document.getElementById("depositBox").classList.remove("hidden");
 };
 
 /* SUBMIT DEPOSIT */
 window.submitDeposit=async()=>{
-const user=auth.currentUser;
-const plan=document.getElementById("planSelect").value;
-const email=document.getElementById("depositEmail").value;
-const amount=parseFloat(document.getElementById("depositAmount").value);
+let user=auth.currentUser;
+let amt=parseFloat(document.getElementById("depositAmount").value);
 
-if(!email||!amount) return alert("Fill all fields");
-
-document.getElementById("depositLoading").classList.remove("hidden");
+if(amt!==requiredAmount) return alert("Incorrect amount");
 
 await push(ref(db,'deposits'),{
 uid:user.uid,
-email,
-amount,
-plan,
-network:selectedNetwork,
+amount:amt,
+plan:selectedPlan,
 status:"pending",
 date:Date.now()
 });
 
-document.getElementById("depositLoading").classList.add("hidden");
-document.getElementById("depositSuccess").classList.remove("hidden");
+alert("Deposit submitted. Wait for approval.");
 };
 
-/* WITHDRAW */
-window.requestWithdraw=async()=>{
-const user=auth.currentUser;
-const amount=parseFloat(document.getElementById("withdrawAmount").value);
-const wallet=document.getElementById("withdrawWallet").value;
-const network=document.getElementById("withdrawNetwork").value;
+/* ADMIN APPROVAL */
+function loadDeposits(){
+onValue(ref(db,'deposits'),snap=>{
+let data=snap.val();
+let html="";
+for(let id in data){
+let d=data[id];
+if(d.status==="pending"){
+html+=`
+<div>
+User: ${d.uid}<br>
+Amount: $${d.amount}<br>
+<button onclick="approve('${id}','${d.uid}',${d.amount},'${d.plan}')" class="green">Approve</button>
+</div><hr>`;
+}
+}
+document.getElementById("deposits").innerHTML=html;
+});
+}
 
-if(!amount||!wallet) return alert("Fill all fields");
+window.approve=async(id,uid,amount,plan)=>{
+let userRef=ref(db,'users/'+uid);
+let snap=await get(userRef);
+let bal=snap.val().balance||0;
 
-document.getElementById("withdrawLoading").classList.remove("hidden");
+await update(userRef,{balance:bal+amount});
+await update(ref(db,'deposits/'+id),{status:"approved"});
+alert("Approved");
+};
 
-await push(ref(db,'withdrawals/'+user.uid),{
-amount,
-wallet,
-network,
-status:"pending",
-date:Date.now()
+/* ACTIVATE INVESTMENT */
+window.activateInvestment=async()=>{
+let user=auth.currentUser;
+let userRef=ref(db,'users/'+user.uid);
+let snap=await get(userRef);
+let data=snap.val();
+
+if(data.balance<requiredAmount)
+return alert("Deposit not approved yet");
+
+await update(userRef,{
+balance:data.balance-requiredAmount,
+investment:{
+amount:requiredAmount,
+plan:selectedPlan,
+start:Date.now(),
+days:0
+}
 });
 
-document.getElementById("withdrawLoading").classList.add("hidden");
-alert("Withdrawal request submitted");
+alert("Investment Activated");
+};
+
+/* AUTO PROFIT EVERY 24 HOURS */
+async function calculateProfit(uid,data){
+if(!data.investment) return;
+
+let inv=data.investment;
+let now=Date.now();
+let days=Math.floor((now-inv.start)/(1000*60*60*24));
+
+if(days>inv.days && days<=30){
+let daily=0;
+if(inv.plan==="starter") daily=0.25;
+if(inv.plan==="silver") daily=0.5;
+if(inv.plan==="diamond") daily=2;
+
+let newEarn=data.earnings+daily;
+
+await update(ref(db,'users/'+uid),{
+earnings:newEarn,
+'investment/days':days
+});
+}
+}
+
+/* WITHDRAW AFTER 30 DAYS */
+window.withdraw=async()=>{
+let user=auth.currentUser;
+let userRef=ref(db,'users/'+user.uid);
+let snap=await get(userRef);
+let data=snap.val();
+
+if(!data.investment) return alert("No investment");
+
+let days=Math.floor((Date.now()-data.investment.start)/(1000*60*60*24));
+
+if(days<30) return alert("Withdrawal allowed after 30 days");
+
+let total=data.earnings+data.investment.amount;
+
+await update(userRef,{
+balance:data.balance+total,
+earnings:0,
+investment:null
+});
+
+alert("Withdrawal Successful");
 };
 
 </script>
-
 </body>
   </html>
