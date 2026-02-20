@@ -44,6 +44,14 @@ button{
   border-radius:6px;
   background:#22c55e;
   color:white;
+  cursor:pointer;
+}
+input, select{
+  padding:8px;
+  margin:5px 0;
+  width:100%;
+  border-radius:6px;
+  border:none;
 }
 </style>
 </head>
@@ -57,24 +65,21 @@ button{
 <div class="stat-box"><h3>Active</h3><p id="active">0</p></div>
 <div class="stat-box"><h3>Matured</h3><p id="matured">0</p></div>
 </div>
+
 <div class="card">
 <h3>Deposit</h3>
 
 <p><strong>Select Network & Copy Address:</strong></p>
 
-<p>1️⃣ USDT (BEP20)</p>
+<p>USDT (BEP20)</p>
 <input type="text" value="0xB66E1e0e5452489298bebd7Cd463587E6866baD2" readonly id="usdtBep">
 <button onclick="copyAddress('usdtBep')">Copy</button>
 
-<br><br>
-
-<p>2️⃣ USDT (TRC20)</p>
+<p>USDT (TRC20)</p>
 <input type="text" value="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe" readonly id="usdtTrc">
 <button onclick="copyAddress('usdtTrc')">Copy</button>
 
-<br><br>
-
-<p>3️⃣ BNB (BEP20)</p>
+<p>BNB (BEP20)</p>
 <input type="text" value="0xB66E1e0e5452489298bebd7Cd463587E6866baD2" readonly id="bnbBep">
 <button onclick="copyAddress('bnbBep')">Copy</button>
 
@@ -91,8 +96,8 @@ button{
 </select>
 
 <button onclick="submitDeposit()">Submit Deposit</button>
-
 </div>
+
 <div class="card">
 <h3>Invest</h3>
 <button onclick="invest(5)">Invest $5</button>
@@ -116,8 +121,14 @@ button{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
+import { 
+  getDatabase, 
+  ref, 
+  push, 
+  onValue, 
+  get, 
+  update 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
   authDomain: "crypto-gainz-3524d.firebaseapp.com",
@@ -127,7 +138,6 @@ const firebaseConfig = {
   messagingSenderId: "270349829717",
   appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
@@ -141,12 +151,19 @@ onAuthStateChanged(auth,(user)=>{
     return;
   }
 
+  loadInvestments(user);
+  loadTransactions(user);
+});
+
+function loadInvestments(user){
   const investRef = ref(db,'investments/'+user.uid);
 
   onValue(investRef,(snap)=>{
     const data=snap.val();
-
-    if(!data) return;
+    if(!data){
+      document.getElementById("total").innerText="$0";
+      return;
+    }
 
     let total=0, active=0, matured=0;
     const amounts=[];
@@ -176,12 +193,17 @@ onAuthStateChanged(auth,(user)=>{
       }
     });
   });
+}
 
+function loadTransactions(user){
   const transRef = ref(db,'transactions/'+user.uid);
 
   onValue(transRef,(snap)=>{
     const data=snap.val();
-    if(!data) return;
+    if(!data){
+      document.getElementById("transactions").innerHTML="No transactions yet";
+      return;
+    }
 
     let html="";
     Object.values(data).forEach(t=>{
@@ -190,9 +212,7 @@ onAuthStateChanged(auth,(user)=>{
 
     document.getElementById("transactions").innerHTML=html;
   });
-});
-
-import { get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+}
 
 window.invest = async (amount) => {
   const user = auth.currentUser;
@@ -222,13 +242,6 @@ window.invest = async (amount) => {
 
   alert("Investment Successful");
 };
-window.copyAddress = (id) => {
-  const input = document.getElementById(id);
-  input.select();
-  input.setSelectionRange(0, 99999);
-  document.execCommand("copy");
-  alert("Address Copied");
-};
 
 window.submitDeposit = async () => {
   const user = auth.currentUser;
@@ -251,6 +264,15 @@ window.submitDeposit = async () => {
 
   alert("Deposit Submitted. Wait for admin approval.");
 };
+
+window.copyAddress = (id) => {
+  const input = document.getElementById(id);
+  input.select();
+  document.execCommand("copy");
+  alert("Address Copied");
+};
+
+</script>
 
 </body>
 </html>
