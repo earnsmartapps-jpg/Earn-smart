@@ -138,43 +138,89 @@ button:hover{
 <div class="spinner" id="spinner"></div>
 
 </div>
-<script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
+  authDomain: "crypto-gainz-3524d.firebaseapp.com",
+  databaseURL: "https://crypto-gainz-3524d-default-rtdb.firebaseio.com",
+  projectId: "crypto-gainz-3524d",
+  storageBucket: "crypto-gainz-3524d.firebasestorage.app",
+  messagingSenderId: "270349829717",
+  appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+/* VERY IMPORTANT - prevents auto logout */
+await setPersistence(auth, browserLocalPersistence);
+
 function showSpinner(){
-    document.getElementById("spinner").style.display="block";
+  document.getElementById("spinner").style.display="block";
 }
 
 function hideSpinner(){
-    document.getElementById("spinner").style.display="none";
+  document.getElementById("spinner").style.display="none";
 }
 
-function signUp(){
-    showSpinner();
+window.signUp = async function(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-    setTimeout(()=>{
-        hideSpinner();
-        alert("Signup Successful!");
-        window.location.href = "dashboard.html";   // redirect
-    },1500);
-}
+  if(!email || !password) return alert("Enter email & password");
 
-function login(){
-    showSpinner();
+  showSpinner();
 
-    setTimeout(()=>{
-        hideSpinner();
-        window.location.href = "dashboard.html";   // redirect
-    },1500);
-}
+  try{
+    await createUserWithEmailAndPassword(auth,email,password);
+    window.location.href="dashboard.html";
+  }catch(error){
+    alert(error.message);
+  }
 
-function forgotPassword(){
-    const email = document.getElementById("email").value;
-    if(!email){
-        alert("Enter your email first.");
-        return;
-    }
-    alert("Password reset link sent to " + email);
-}
+  hideSpinner();
+};
+
+window.login = async function(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if(!email || !password) return alert("Enter email & password");
+
+  showSpinner();
+
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+    window.location.href="dashboard.html";
+  }catch(error){
+    alert(error.message);
+  }
+
+  hideSpinner();
+};
+
+window.forgotPassword = async function(){
+  const email = document.getElementById("email").value;
+  if(!email) return alert("Enter your email first");
+
+  try{
+    await sendPasswordResetEmail(auth,email);
+    alert("Password reset link sent to your email");
+  }catch(error){
+    alert(error.message);
+  }
+};
 </script>
-
 </body>
 </html>
