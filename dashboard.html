@@ -192,24 +192,65 @@ onAuthStateChanged(auth,(user)=>{
   });
 });
 
-window.invest = async (amount)=>{
+import { get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+window.invest = async (amount) => {
   const user = auth.currentUser;
-  if(!user) return;
+  if (!user) return;
+
+  const snap = await get(ref(db,'users/'+user.uid));
+  const balance = snap.val()?.balance || 0;
+
+  if (balance < amount) {
+    alert("Insufficient balance. Deposit first.");
+    return;
+  }
+
+  await update(ref(db,'users/'+user.uid),{
+    balance: balance - amount
+  });
 
   await push(ref(db,'investments/'+user.uid),{
     amount,
-    startDate:Date.now()
+    startDate: Date.now()
   });
 
   await push(ref(db,'transactions/'+user.uid),{
-    type:"deposit",
+    type:"investment",
     amount
   });
 
-  alert("Investment Added");
+  alert("Investment Successful");
+};
+window.copyAddress = (id) => {
+  const input = document.getElementById(id);
+  input.select();
+  input.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+  alert("Address Copied");
 };
 
-</script>
+window.submitDeposit = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const profileId = document.getElementById("profileId").value;
+  const amount = parseFloat(document.getElementById("depositAmount").value);
+  const network = document.getElementById("network").value;
+
+  if (!profileId || !amount || amount <= 0)
+    return alert("Fill all fields correctly");
+
+  await push(ref(db, 'deposits/' + user.uid), {
+    profileId,
+    amount,
+    network,
+    status: "pending",
+    date: Date.now()
+  });
+
+  alert("Deposit Submitted. Wait for admin approval.");
+};
 
 </body>
 </html>
