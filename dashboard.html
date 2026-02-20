@@ -13,8 +13,8 @@ color:white;
 }
 
 header{
-padding:15px;
 background:#111;
+padding:15px;
 display:flex;
 justify-content:space-between;
 align-items:center;
@@ -25,36 +25,44 @@ padding:10px;
 border:none;
 border-radius:6px;
 cursor:pointer;
+font-weight:bold;
 }
 
+.green{background:#00c853;color:white;}
+.red{background:#d50000;color:white;}
+.blue{background:#2962ff;color:white;}
+
 .card{
-background:#1c1c1c;
+background:#1e1e1e;
 margin:15px;
 padding:15px;
 border-radius:10px;
-box-shadow:0 0 15px rgba(0,255,0,0.2);
+box-shadow:0 0 20px rgba(0,255,150,0.15);
 }
-
-h2{color:#00ff99;}
 
 input,select{
 width:100%;
 padding:8px;
-margin:5px 0;
+margin:6px 0;
 border-radius:5px;
 border:none;
 }
 
-.spinner{
-display:none;
-text-align:center;
+.wallet{
+background:#111;
+padding:8px;
+border-radius:6px;
+word-break:break-all;
 }
+
+.hidden{display:none;}
 
 .dollar{
 position:fixed;
 font-size:22px;
 color:#00ff99;
 animation:float 6s linear infinite;
+opacity:0.3;
 }
 
 @keyframes float{
@@ -67,59 +75,60 @@ animation:float 6s linear infinite;
 <body>
 
 <header>
-<h3>💰 Fintech App</h3>
-<button onclick="logout()">Logout</button>
+<h3>💰 Fintech Dashboard</h3>
+<button class="red" onclick="logout()">Logout</button>
 </header>
 
 <div class="card">
-<h2>Profile</h2>
-<p><b>Email:</b> <span id="email"></span></p>
-<p><b>User ID:</b> <span id="profileId"></span></p>
-<p><b>Balance:</b> $<span id="balance">0.00</span></p>
-<p><b>Earnings:</b> $<span id="earnings">0.00</span></p>
+<h3>Email (Profile ID): <span id="email">Loading...</span></h3>
+<h3>Balance: $<span id="balance">0.00</span></h3>
+<h3>Earnings: $<span id="earnings">0.00</span></h3>
 </div>
 
 <div class="card">
-<h2>Investment Plans</h2>
+<h3>Investment Plans</h3>
 <select id="planSelect">
-<option value="5">Starter - $5 (Earn $0.25 Daily)</option>
-<option value="20">Silver - $20 (Earn $1 Daily)</option>
-<option value="50">Gold - $50 (Earn $2.5 Daily)</option>
+<option value="">Select Plan</option>
+<option value="5">Starter - $5 (5% daily)</option>
+<option value="10">Silver - $10 (5% daily)</option>
+<option value="20">Diamond - $20 (10% daily)</option>
 </select>
-<button onclick="activatePlan()">Activate Plan</button>
+<button class="green" onclick="activatePlan()">Activate Plan</button>
 </div>
 
 <div class="card">
-<h2>Deposit</h2>
-<p>Send to one of these wallets:</p>
-<p><b>TRC20 USDT:</b><br>TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe</p>
-<p><b>BEP20 BNB:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
-<p><b>ERC20 ETH:</b><br>0xB66E1e0e5452489298bebd7Cd463587E6866baD2</p>
+<h3>Deposit</h3>
+<p>Send to:</p>
+<div class="wallet">TRC20: TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe</div>
+<div class="wallet">BEP20/ERC20: 0xB66E1e0e5452489298bebd7Cd463587E6866baD2</div>
 
-<input type="number" id="depositAmount" placeholder="Enter Amount">
-<button onclick="submitDeposit()">Submit Deposit</button>
+<input type="number" id="depositAmount" placeholder="Enter Amount Sent">
+<button class="blue" onclick="submitDeposit()">Submit Deposit</button>
 </div>
 
 <div class="card">
-<h2>Withdraw</h2>
+<h3>Withdraw</h3>
 <input type="number" id="withdrawAmount" placeholder="Enter Amount">
-<button onclick="withdraw()">Withdraw</button>
+<button class="green" onclick="withdraw()">Withdraw</button>
 </div>
 
 <div class="card">
-<h2>Referral</h2>
-<p>Your Referral Link:</p>
-<p id="refLink"></p>
+<h3>Referral</h3>
+<div class="wallet" id="refLink"></div>
 </div>
 
-<div class="spinner" id="loading">Processing...</div>
+<div class="card hidden" id="adminPanel">
+<h3>Admin Panel - Approve Deposits</h3>
+<div id="depositRequests"></div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth,onAuthStateChanged,signOut }
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase,ref,set,get,update,onValue,push }
+import { getDatabase, ref, set, get, update, push, onValue }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
   authDomain: "crypto-gainz-3524d.firebaseapp.com",
@@ -129,93 +138,156 @@ const firebaseConfig = {
   messagingSenderId: "270349829717",
   appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
 };
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getDatabase(app);
 
-let currentUser=null;
+const ADMIN_EMAIL = "earnsmartapps@gmail.com";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+/* 🔥 FIX AUTO LOGOUT */
+await setPersistence(auth, browserLocalPersistence);
+
+let currentUser;
 
 onAuthStateChanged(auth, async(user)=>{
 if(!user){
-location="index.html";
+window.location.href="index.html";
 return;
 }
 
 currentUser=user;
-document.getElementById("email").innerText=user.email || "No Email";
-document.getElementById("profileId").innerText=user.uid;
+document.getElementById("email").innerText=user.email;
 document.getElementById("refLink").innerText=
-window.location.origin+"/?ref="+user.uid;
+window.location.origin + "/?ref=" + user.email;
 
+/* CREATE USER IF NOT EXIST */
 const userRef=ref(db,"users/"+user.uid);
 const snap=await get(userRef);
 
 if(!snap.exists()){
 await set(userRef,{
-email:user.email||"",
+email:user.email,
 balance:0,
 earnings:0,
-plan:null,
-activationDate:null
+plan:null
 });
 }
 
+/* LIVE UPDATE */
 onValue(userRef,(snapshot)=>{
 let data=snapshot.val();
 document.getElementById("balance").innerText=(data.balance||0).toFixed(2);
 document.getElementById("earnings").innerText=(data.earnings||0).toFixed(2);
 });
+
+/* ADMIN PANEL */
+if(user.email===ADMIN_EMAIL){
+document.getElementById("adminPanel").classList.remove("hidden");
+loadDeposits();
+}
 });
 
-window.logout=function(){
-signOut(auth);
-location="index.html";
-}
-
-window.submitDeposit=async function(){
-let amount=document.getElementById("depositAmount").value;
-if(!amount) return alert("Enter amount");
+/* SUBMIT DEPOSIT */
+window.submitDeposit=async()=>{
+let amt=parseFloat(document.getElementById("depositAmount").value);
+if(!amt) return alert("Enter amount");
 
 await push(ref(db,"deposits"),{
 uid:currentUser.uid,
-amount:parseFloat(amount),
+email:currentUser.email,
+amount:amt,
 status:"pending",
 date:Date.now()
 });
 
-alert("Deposit submitted. Wait for admin approval.");
+alert("Deposit submitted. Waiting for admin approval.");
+};
+
+/* ADMIN LOAD */
+function loadDeposits(){
+onValue(ref(db,"deposits"),(snapshot)=>{
+let data=snapshot.val();
+let html="";
+for(let id in data){
+let d=data[id];
+if(d.status==="pending"){
+html+=`
+<div>
+User: ${d.email}<br>
+Amount: $${d.amount}<br>
+<button onclick="approve('${id}','${d.uid}',${d.amount})" class="green">Approve</button>
+<hr>
+</div>`;
+}
+}
+document.getElementById("depositRequests").innerHTML=html;
+});
 }
 
-window.activatePlan=async function(){
+window.approve=async(id,uid,amount)=>{
+const userRef=ref(db,"users/"+uid);
+const snap=await get(userRef);
+let bal=snap.val().balance||0;
+
+await update(userRef,{balance:bal+amount});
+await update(ref(db,"deposits/"+id),{status:"approved"});
+alert("Deposit Approved");
+};
+
+/* ACTIVATE PLAN */
+window.activatePlan=async()=>{
 let amount=parseFloat(document.getElementById("planSelect").value);
+if(!amount) return alert("Select plan");
+
 const userRef=ref(db,"users/"+currentUser.uid);
+const snap=await get(userRef);
+let data=snap.val();
+
+if(data.balance<amount){
+alert("Insufficient balance");
+return;
+}
 
 await update(userRef,{
-plan:amount,
-activationDate:Date.now()
+balance:data.balance-amount,
+plan:{
+amount:amount,
+start:Date.now()
+}
 });
 
-alert("Plan activated!");
-}
+alert("Plan Activated");
+};
 
-window.withdraw=async function(){
+/* WITHDRAW */
+window.withdraw=async()=>{
 let amount=parseFloat(document.getElementById("withdrawAmount").value);
 const userRef=ref(db,"users/"+currentUser.uid);
 const snap=await get(userRef);
 let data=snap.val();
 
-if(amount>data.balance) return alert("Insufficient balance");
+if(amount>data.balance){
+alert("Insufficient balance");
+return;
+}
 
 await update(userRef,{
 balance:data.balance-amount
 });
 
-alert("Withdrawal request submitted");
-}
+alert("Withdrawal submitted");
+};
+
+window.logout=function(){
+signOut(auth).then(()=>{
+window.location.href="index.html";
+});
+};
 </script>
 
 <script>
-for(let i=0;i<15;i++){
+for(let i=0;i<20;i++){
 let d=document.createElement("div");
 d.className="dollar";
 d.innerText="$";
