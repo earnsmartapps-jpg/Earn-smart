@@ -15,6 +15,7 @@ h2,h3{margin-top:0;}
 button{padding:12px;border:none;border-radius:10px;background:linear-gradient(45deg,#c0c0c0,#94a3b8);color:black;font-weight:bold;cursor:pointer;transition:0.3s;}
 button:hover{transform:scale(1.05);}
 .copy-btn{margin-top:10px;background:linear-gradient(45deg,#38bdf8,#0ea5e9);color:white;}
+.copy-message{margin-top:6px;font-size:13px;color:#38bdf8;}
 input,select{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:none;}
 .wallet-box{background:#0f172a;padding:12px;border-radius:8px;word-break:break-all;font-size:13px;}
 .hidden{display:none;}
@@ -49,7 +50,6 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <h4>Total Referrals: <span id="refCount">0</span></h4>
 </div>
 
-<!-- ACTIVATE PLAN (MOVED HERE) -->
 <div class="card">
 <h3>Activate Investment Plan</h3>
 
@@ -71,13 +71,13 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <div id="walletSection" class="hidden">
 <div class="wallet-box" id="walletAddress"></div>
 <button class="copy-btn" onclick="copyWallet()">Copy Wallet Address</button>
+<div id="walletCopyMsg" class="copy-message"></div>
 
 <input type="number" id="depositAmount" placeholder="Amount Sent">
 <button onclick="submitDeposit()">Submit Deposit</button>
 </div>
 </div>
 
-<!-- REFERRAL -->
 <div class="card">
 <h3>Referral</h3>
 
@@ -85,18 +85,17 @@ Profile ID: <span id="profileEmail">Loading...</span>
 
 <div class="wallet-box" id="refLinkBox"></div>
 <button class="copy-btn" onclick="copyReferral()">Copy Referral Link</button>
+<div id="refCopyMsg" class="copy-message"></div>
 
 <h4>Referral History</h4>
 <div id="refHistory"></div>
 </div>
 
-<!-- TRANSACTION HISTORY -->
 <div class="card">
 <h3>Transaction History</h3>
 <div id="history"></div>
 </div>
 
-<!-- WITHDRAW -->
 <div class="card">
 <h3>Withdraw</h3>
 <input type="number" id="withdrawAmount" placeholder="Amount">
@@ -109,7 +108,6 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <button onclick="requestWithdraw()">Request Withdrawal</button>
 </div>
 
-<!-- ADMIN -->
 <div class="card hidden" id="adminPanel">
 <h3>ADMIN PANEL</h3>
 <h4>Pending Deposits</h4>
@@ -150,13 +148,11 @@ let snap=await get(userRef);
 
 if(!snap.exists()){
 let referralCode="REF"+Math.floor(Math.random()*100000);
-let refParam=new URLSearchParams(window.location.search).get("ref");
-
 await set(userRef,{
 email:user.email,
 balance:0,
 referralCode,
-referredBy:refParam||null,
+referredBy:null,
 plan:null,
 planStart:null,
 refEarnings:0
@@ -186,13 +182,13 @@ loadAdmin();
 /* COPY REFERRAL */
 window.copyReferral=()=>{
 navigator.clipboard.writeText(referralLink);
-alert("Referral Link Copied");
+document.getElementById("refCopyMsg").innerText="Referral code copied";
 };
 
 /* WALLET */
 window.showWallet=()=>{
 let net=document.getElementById("networkSelect").value;
-if(!net) return alert("Select Network");
+if(!net) return;
 
 if(net==="trc20") selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
 if(net==="bsc") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
@@ -204,114 +200,9 @@ document.getElementById("walletSection").classList.remove("hidden");
 
 window.copyWallet=()=>{
 navigator.clipboard.writeText(selectedWallet);
-alert("Wallet Copied");
-};
-
-/* SUBMIT DEPOSIT */
-window.submitDeposit=async()=>{
-let user=auth.currentUser;
-let amount=parseFloat(document.getElementById("depositAmount").value);
-let plan=document.getElementById("planSelect").value;
-
-if(!amount||amount<5) return alert("Minimum $5");
-
-await push(ref(db,'deposits'),{
-uid:user.uid,
-amount,
-plan,
-status:"pending",
-date:Date.now()
-});
-alert("Deposit Submitted - Waiting Admin Approval");
-};
-
-/* ADMIN */
-function loadAdmin(){
-onValue(ref(db,'deposits'),snap=>{
-let html="";
-snap.forEach(child=>{
-let d=child.val();
-if(d.status==="pending"){
-html+=`<div class="admin-box">
-${d.uid} - $${d.amount}
-<button onclick="approveDeposit('${child.key}','${d.uid}',${d.amount},'${d.plan}')">Approve</button>
-</div>`;
-}
-});
-document.getElementById("adminDeposits").innerHTML=html;
-});
-}
-
-window.approveDeposit=async(id,uid,amount,plan)=>{
-let userRef=ref(db,'users/'+uid);
-let snap=await get(userRef);
-let data=snap.val();
-
-await update(userRef,{
-balance:(data.balance||0)+amount,
-plan:plan,
-planStart:Date.now()
-});
-
-await update(ref(db,'deposits/'+id),{status:"approved"});
-
-/* REFERRAL BONUS */
-if(data.referredBy){
-let users=await get(ref(db,'users'));
-users.forEach(child=>{
-if(child.val().referralCode===data.referredBy){
-update(ref(db,'users/'+child.key),{
-balance:(child.val().balance||0)+1,
-refEarnings:(child.val().refEarnings||0)+1
-});
-}
-});
-}
-
-alert("Deposit Approved + Plan Activated");
-};
-
-/* REFERRAL LIST */
-function loadReferrals(code){
-onValue(ref(db,'users'),snap=>{
-let count=0;
-let html="";
-snap.forEach(child=>{
-if(child.val().referredBy===code){
-count++;
-html+=`<div class="admin-box">${child.val().email}</div>`;
-}
-});
-document.getElementById("refCount").innerText=count;
-document.getElementById("refHistory").innerHTML=html;
-});
-}
-
-/* HISTORY */
-function loadHistory(uid){
-onValue(ref(db,'history/'+uid),snap=>{
-let html="";
-snap.forEach(child=>{
-let d=child.val();
-html+=`<div class="admin-box">${d.type} - $${d.amount}</div>`;
-});
-document.getElementById("history").innerHTML=html;
-});
-}
-
-window.requestWithdraw=async()=>{
-let user=auth.currentUser;
-let amount=parseFloat(document.getElementById("withdrawAmount").value);
-
-await push(ref(db,'withdrawals'),{
-uid:user.uid,
-amount,
-status:"pending",
-date:Date.now()
-});
-alert("Withdrawal Pending Admin Approval");
+document.getElementById("walletCopyMsg").innerText="Wallet address copied, go and make your payment";
 };
 
 </script>
 </body>
-</html>
+  </html>
