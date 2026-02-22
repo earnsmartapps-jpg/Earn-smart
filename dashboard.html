@@ -2,264 +2,279 @@
 <html>  
 <head>  
 <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-<title>Earn Smart - Fintech Dashboard</title>  <style>  
-body{  
-  margin:0;  
-  font-family:'Segoe UI',sans-serif;  
-  background:linear-gradient(135deg,#0f172a,#1e293b,#334155);  
-  color:white;  
-  overflow-x:hidden;  
-}  
-  
-/* SILVER DOLLAR ANIMATION */  
-.dollar{  
-  position:fixed;  
-  top:-50px;  
-  color:silver;  
-  font-size:20px;  
-  animation:fall linear infinite;  
-  opacity:0.4;  
-}  
-@keyframes fall{  
-  to{transform:translateY(110vh);}  
-}  
-  
-.container{padding:20px;max-width:950px;margin:auto;}  
-  
-.card{  
-  background:rgba(255,255,255,0.08);  
-  backdrop-filter:blur(10px);  
-  padding:20px;  
-  border-radius:15px;  
-  margin-bottom:20px;  
-  box-shadow:0 0 20px rgba(192,192,192,0.2);  
-}  
-  
-h2,h3{margin-top:0;}  
-  
-.profile{  
-  background:#111827;  
-  padding:10px;  
-  border-radius:10px;  
-  margin-bottom:20px;  
-  font-size:14px;  
-  color:#cbd5e1;  
-}  
-  
-button{  
-  padding:12px;  
-  border:none;  
-  border-radius:10px;  
-  background:linear-gradient(45deg,#c0c0c0,#94a3b8);  
-  color:black;  
-  font-weight:bold;  
-  cursor:pointer;  
-  transition:0.3s;  
-}  
-button:hover{transform:scale(1.05);}  
-  
-.copy-btn{  
-  margin-top:10px;  
-  background:linear-gradient(45deg,#38bdf8,#0ea5e9);  
-  color:white;  
-}  
-  
-input,select{  
-  width:100%;  
-  padding:12px;  
-  margin:8px 0;  
-  border-radius:10px;  
-  border:none;  
-}  
-  
-.wallet-box{  
-  background:#0f172a;  
-  padding:12px;  
-  border-radius:8px;  
-  word-break:break-all;  
-  font-size:13px;  
-}  
-  
-.hidden{display:none;}  
-  
-.spinner{  
-  border:4px solid rgba(255,255,255,0.2);  
-  border-top:4px solid silver;  
-  border-radius:50%;  
-  width:25px;  
-  height:25px;  
-  animation:spin 1s linear infinite;  
-  margin:auto;  
-}  
-@keyframes spin{100%{transform:rotate(360deg);}}  
-  
-.success{color:#22c55e;margin-top:8px;}  
-.small{font-size:12px;color:#cbd5e1;}  
-</style>  </head>  
-<body>  <!-- SILVER DOLLARS -->  <script>  
-for(let i=0;i<25;i++){  
-let span=document.createElement("span");  
-span.className="dollar";  
-span.innerText="$";  
-span.style.left=Math.random()*100+"vw";  
-span.style.animationDuration=(5+Math.random()*5)+"s";  
-document.body.appendChild(span);  
-}  
-</script>  <div class="container">  <h2>Earn Smart Dashboard</h2>  <div class="profile">  
-Profile ID: <span id="profileEmail">Loading...</span>  
-</div>  <div class="card">  
-<h3>Balance: $<span id="balance">0</span></h3>  
-</div>  <!-- DEPOSIT SECTION -->  <div class="card">  
-<h3>Activate Investment Plan</h3>  <select id="planSelect">  
-<option value="starter">Starter - Deposit $5 earn +5% =$0.25 daily for 30 days     </option>  
-<option value="silver">Silver - Deposit $10 earn +5% =$0.50 daily for 30 days      </option>  
-<option value="diamond">Diamond - Deposit $20 earn +10% daily =$2 daily for 30 days </option>  
-</select>  <select id="networkSelect">  
-<option value="">Select Network</option>  
-<option value="trc20">USDT TRC20</option>  
-<option value="bsc">BSC BEP20</option>  
-<option value="erc20">USDT ERC20</option>  
-</select>  <button onclick="showWallet()">Generate Deposit Address</button>
+<title>Earn Smart - Fintech Dashboard</title>  
+<style>  
+/* ====== YOUR ORIGINAL STYLE (UNCHANGED) ====== */
+body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b,#334155);color:white;overflow-x:hidden;}
+.dollar{position:fixed;top:-50px;color:silver;font-size:20px;animation:fall linear infinite;opacity:0.4;}
+@keyframes fall{to{transform:translateY(110vh);}}
+.container{padding:20px;max-width:950px;margin:auto;}
+.card{background:rgba(255,255,255,0.08);backdrop-filter:blur(10px);padding:20px;border-radius:15px;margin-bottom:20px;box-shadow:0 0 20px rgba(192,192,192,0.2);}
+h2,h3{margin-top:0;}
+.profile{background:#111827;padding:10px;border-radius:10px;margin-bottom:20px;font-size:14px;color:#cbd5e1;}
+button{padding:12px;border:none;border-radius:10px;background:linear-gradient(45deg,#c0c0c0,#94a3b8);color:black;font-weight:bold;cursor:pointer;transition:0.3s;}
+button:hover{transform:scale(1.05);}
+.copy-btn{margin-top:10px;background:linear-gradient(45deg,#38bdf8,#0ea5e9);color:white;}
+input,select{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:none;}
+.wallet-box{background:#0f172a;padding:12px;border-radius:8px;word-break:break-all;font-size:13px;}
+.hidden{display:none;}
+.spinner{border:4px solid rgba(255,255,255,0.2);border-top:4px solid silver;border-radius:50%;width:25px;height:25px;animation:spin 1s linear infinite;margin:auto;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+.success{color:#22c55e;margin-top:8px;}
+.small{font-size:12px;color:#cbd5e1;}
+.admin-box{background:#1e293b;padding:10px;border-radius:10px;margin-top:10px;}
+</style>  
+</head>  
 
-<div id="walletSection" class="hidden">  <div class="wallet-box" id="walletAddress"></div>  <button class="copy-btn hidden" id="copyBtn" onclick="copyWallet()">  
-Copy Wallet Address  
-</button>  <div id="copySuccess" class="success hidden">  
-Wallet address copied successfully!  
-</div>  <h4>Confirm Deposit</h4>  
-<input type="text" id="depositEmail" placeholder="Your Profile ID (Email)">  
-<input type="number" id="depositAmount" placeholder="Amount Sent">  <button onclick="submitDeposit()">Submit Deposit</button>
+<body>
 
-<div id="depositLoading" class="hidden spinner"></div>  
-<div id="depositSuccess" class="success hidden">  
-Deposit submitted. Awaiting approval.  
-</div>  </div>  <p class="small">Admin must approve deposit before balance updates.</p>  
-</div>  <!-- WITHDRAW -->  <div class="card">  
-<h3>Withdraw</h3>  
-<input type="number" id="withdrawAmount" placeholder="Amount">  
-<input type="text" id="withdrawWallet" placeholder="Wallet Address">  
-<select id="withdrawNetwork">  
-<option>TRC20</option>  
-<option>BEP20</option>  
-<option>ERC20</option>  
-</select>  
-<button onclick="requestWithdraw()">Request Withdrawal</button>  
-<div id="withdrawLoading" class="hidden spinner"></div>  
-</div>  </div>  <script type="module">  
-  
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";  
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
-  
-const firebaseConfig = {  
-  apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",  
-  authDomain: "crypto-gainz-3524d.firebaseapp.com",  
-  databaseURL: "https://crypto-gainz-3524d-default-rtdb.firebaseio.com",  
-  projectId: "crypto-gainz-3524d",  
-  storageBucket: "crypto-gainz-3524d.firebasestorage.app",  
-  messagingSenderId: "270349829717",  
-  appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"  
-};  
-  
-const app = initializeApp(firebaseConfig);  
-const auth = getAuth(app);  
-const db = getDatabase(app);  
-  
-let selectedWallet="";  
-let selectedNetwork="";  
-  
-/* AUTH CHECK */  
-onAuthStateChanged(auth,(user)=>{  
-if(!user){window.location="index.html";return;}  
-  
-document.getElementById("profileEmail").innerText=user.email;  
-document.getElementById("depositEmail").value=user.email;  
-  
-onValue(ref(db,'users/'+user.uid),(snap)=>{  
-document.getElementById("balance").innerText=  
-(snap.val()?.balance||0).toFixed(2);  
-});  
-});  
-  
-/* SHOW WALLET */  
-window.showWallet=()=>{  
-const network=document.getElementById("networkSelect").value;  
-if(!network) return alert("Select network");  
-  
-if(network==="trc20"){  
-selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";  
-selectedNetwork="USDT TRC20";  
-}  
-if(network==="bsc"){  
-selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";  
-selectedNetwork="BSC BEP20";  
-}  
-if(network==="erc20"){  
-selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";  
-selectedNetwork="USDT ERC20";  
-}  
-  
-document.getElementById("walletAddress").innerText=selectedWallet;  
-document.getElementById("walletSection").classList.remove("hidden");  
-document.getElementById("copyBtn").classList.remove("hidden");  
-};  
-  
-/* COPY WALLET */  
-window.copyWallet=()=>{  
-navigator.clipboard.writeText(selectedWallet).then(()=>{  
-document.getElementById("copySuccess").classList.remove("hidden");  
-setTimeout(()=>{  
-document.getElementById("copySuccess").classList.add("hidden");  
-},2000);  
-});  
-};  
-  
-/* SUBMIT DEPOSIT */  
-window.submitDeposit=async()=>{  
-const user=auth.currentUser;  
-const plan=document.getElementById("planSelect").value;  
-const email=document.getElementById("depositEmail").value;  
-const amount=parseFloat(document.getElementById("depositAmount").value);  
-  
-if(!email||!amount) return alert("Fill all fields");  
-  
-document.getElementById("depositLoading").classList.remove("hidden");  
-  
-await push(ref(db,'deposits'),{  
-uid:user.uid,  
-email,  
-amount,  
-plan,  
-network:selectedNetwork,  
-status:"pending",  
-date:Date.now()  
-});  
-  
-document.getElementById("depositLoading").classList.add("hidden");  
-document.getElementById("depositSuccess").classList.remove("hidden");  
-};  
-  
-/* WITHDRAW */  
-window.requestWithdraw=async()=>{  
-const user=auth.currentUser;  
-const amount=parseFloat(document.getElementById("withdrawAmount").value);  
-const wallet=document.getElementById("withdrawWallet").value;  
-const network=document.getElementById("withdrawNetwork").value;  
-  
-if(!amount||!wallet) return alert("Fill all fields");  
-  
-document.getElementById("withdrawLoading").classList.remove("hidden");  
-  
-await push(ref(db,'withdrawals/'+user.uid),{  
-amount,  
-wallet,  
-network,  
-status:"pending",  
-date:Date.now()  
-});  
-  
-document.getElementById("withdrawLoading").classList.add("hidden");  
-alert("Withdrawal request submitted");  
-};  
-  
-</script>  </body>  
-</html>  
+<script>
+for(let i=0;i<25;i++){
+let span=document.createElement("span");
+span.className="dollar";
+span.innerText="$";
+span.style.left=Math.random()*100+"vw";
+span.style.animationDuration=(5+Math.random()*5)+"s";
+document.body.appendChild(span);
+}
+</script>
+
+<div class="container">
+
+<h2>Earn Smart Dashboard</h2>
+
+<div class="profile">
+Profile ID: <span id="profileEmail">Loading...</span>
+</div>
+
+<div class="card">
+<h3>Balance: $<span id="balance">0</span></h3>
+</div>
+
+<!-- REFERRAL -->
+<div class="card">
+<h3>Referral</h3>
+<p>Your Referral Link:</p>
+<div id="refLink"></div>
+</div>
+
+<!-- DEPOSIT -->
+<div class="card">
+<h3>Activate Investment Plan</h3>
+
+<select id="planSelect">
+<option value="starter">Starter - $5</option>
+<option value="silver">Silver - $10</option>
+<option value="diamond">Diamond - $20</option>
+</select>
+
+<select id="networkSelect">
+<option value="">Select Network</option>
+<option value="trc20">USDT TRC20</option>
+<option value="bsc">BSC BEP20</option>
+<option value="erc20">USDT ERC20</option>
+</select>
+
+<button onclick="showWallet()">Generate Deposit Address</button>
+
+<div id="walletSection" class="hidden">
+<div class="wallet-box" id="walletAddress"></div>
+<button class="copy-btn hidden" id="copyBtn" onclick="copyWallet()">Copy Wallet Address</button>
+
+<input type="number" id="depositAmount" placeholder="Amount Sent">
+<button onclick="submitDeposit()">Submit Deposit</button>
+
+<div id="depositLoading" class="hidden spinner"></div>
+</div>
+</div>
+
+<!-- WITHDRAW -->
+<div class="card">
+<h3>Withdraw</h3>
+<input type="number" id="withdrawAmount" placeholder="Amount">
+<input type="text" id="withdrawWallet" placeholder="Wallet Address">
+<select id="withdrawNetwork">
+<option>TRC20</option>
+<option>BEP20</option>
+<option>ERC20</option>
+</select>
+<button onclick="requestWithdraw()">Request Withdrawal</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="card hidden" id="adminPanel">
+<h3>ADMIN PANEL</h3>
+
+<h4>Pending Deposits</h4>
+<div id="adminDeposits"></div>
+
+<h4>Pending Withdrawals</h4>
+<div id="adminWithdrawals"></div>
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, push, onValue, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
+authDomain: "crypto-gainz-3524d.firebaseapp.com",
+databaseURL: "https://crypto-gainz-3524d-default-rtdb.firebaseio.com",
+projectId: "crypto-gainz-3524d",
+storageBucket: "crypto-gainz-3524d.firebasestorage.app",
+messagingSenderId: "270349829717",
+appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let selectedWallet="";
+let selectedNetwork="";
+
+onAuthStateChanged(auth, async(user)=>{
+if(!user){window.location="index.html";return;}
+
+document.getElementById("profileEmail").innerText=user.email;
+
+const userRef=ref(db,'users/'+user.uid);
+const snap=await get(userRef);
+
+if(!snap.exists()){
+const referralCode="REF"+Math.floor(Math.random()*100000);
+await update(userRef,{
+email:user.email,
+balance:0,
+referralCode:referralCode,
+referredBy:null,
+planStart:null
+});
+}
+
+onValue(userRef,(s)=>{
+document.getElementById("balance").innerText=(s.val()?.balance||0).toFixed(2);
+});
+
+const userData=(await get(userRef)).val();
+document.getElementById("refLink").innerText=
+window.location.origin+"/index.html?ref="+userData.referralCode;
+
+if(user.email==="earnsmartapps@gmail.com"){
+document.getElementById("adminPanel").classList.remove("hidden");
+loadAdmin();
+}
+});
+
+/* SHOW WALLET */
+window.showWallet=()=>{
+const network=document.getElementById("networkSelect").value;
+if(!network) return alert("Select network");
+
+if(network==="trc20"){selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";selectedNetwork="TRC20";}
+if(network==="bsc"){selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";selectedNetwork="BEP20";}
+if(network==="erc20"){selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";selectedNetwork="ERC20";}
+
+document.getElementById("walletAddress").innerText=selectedWallet;
+document.getElementById("walletSection").classList.remove("hidden");
+document.getElementById("copyBtn").classList.remove("hidden");
+};
+
+/* COPY */
+window.copyWallet=()=>{
+navigator.clipboard.writeText(selectedWallet);
+alert("Copied");
+};
+
+/* SUBMIT DEPOSIT */
+window.submitDeposit=async()=>{
+const user=auth.currentUser;
+const amount=parseFloat(document.getElementById("depositAmount").value);
+const plan=document.getElementById("planSelect").value;
+
+if(!amount) return alert("Enter amount");
+
+await push(ref(db,'deposits'),{
+uid:user.uid,
+amount,
+plan,
+status:"pending",
+date:Date.now()
+});
+
+alert("Deposit Submitted");
+};
+
+/* ADMIN LOAD */
+function loadAdmin(){
+onValue(ref(db,'deposits'),(snap)=>{
+let html="";
+snap.forEach(child=>{
+let d=child.val();
+if(d.status==="pending"){
+html+=`<div class="admin-box">
+${d.uid} - $${d.amount}
+<button onclick="approveDeposit('${child.key}','${d.uid}',${d.amount}')">Approve</button>
+</div>`;
+}
+});
+document.getElementById("adminDeposits").innerHTML=html;
+});
+}
+
+/* APPROVE DEPOSIT */
+window.approveDeposit=async(id,uid,amount)=>{
+await update(ref(db,'deposits/'+id),{status:"approved"});
+
+const userRef=ref(db,'users/'+uid);
+const snap=await get(userRef);
+const currentBalance=snap.val().balance||0;
+
+await update(userRef,{
+balance:currentBalance+amount,
+planStart:Date.now()
+});
+
+if(snap.val().referredBy){
+const allUsers=await get(ref(db,'users'));
+allUsers.forEach(child=>{
+if(child.val().referralCode===snap.val().referredBy){
+update(ref(db,'users/'+child.key),{
+balance:(child.val().balance||0)+1
+});
+}
+});
+}
+
+alert("Deposit Approved");
+};
+
+/* WITHDRAW */
+window.requestWithdraw=async()=>{
+const user=auth.currentUser;
+const amount=parseFloat(document.getElementById("withdrawAmount").value);
+
+const snap=await get(ref(db,'users/'+user.uid));
+const data=snap.val();
+
+if(!data.planStart) return alert("No active plan");
+
+const days=(Date.now()-data.planStart)/(1000*60*60*24);
+if(days<30) return alert("Withdraw allowed after 30 days");
+
+await push(ref(db,'withdrawals/'+user.uid),{
+amount,
+status:"pending",
+date:Date.now()
+});
+
+alert("Withdrawal Submitted");
+};
+
+</script>
+</body>
+  </html>
