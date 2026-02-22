@@ -1,9 +1,10 @@
-<!DOCTYPE html> 
-<html>  
-<head>  
-<meta name="viewport" content="width=device-width, initial-scale=1.0">  
-<title>Earn Smart - Fintech Dashboard</title>  
-<style>  
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earn Smart - Fintech Dashboard</title>
+
+<style>
 /* ====== YOUR ORIGINAL STYLE (UNCHANGED) ====== */
 body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b,#334155);color:white;overflow-x:hidden;}
 .dollar{position:fixed;top:-50px;color:silver;font-size:20px;animation:fall linear infinite;opacity:0.4;}
@@ -23,8 +24,8 @@ input,select{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:none
 .success{color:#22c55e;margin-top:8px;}
 .small{font-size:12px;color:#cbd5e1;}
 .admin-box{background:#1e293b;padding:10px;border-radius:10px;margin-top:10px;}
-</style>  
-</head>  
+</style>
+</head>
 
 <body>
 
@@ -49,13 +50,22 @@ Profile ID: <span id="profileEmail">Loading...</span>
 
 <div class="card">
 <h3>Balance: $<span id="balance">0</span></h3>
+<h4>Referral Earnings: $<span id="refEarn">0</span></h4>
+<h4>Total Referrals: <span id="refCount">0</span></h4>
 </div>
 
 <!-- REFERRAL -->
 <div class="card">
 <h3>Referral</h3>
-<p>Your Referral Link:</p>
 <div id="refLink"></div>
+<h4>Referral History</h4>
+<div id="refHistory"></div>
+</div>
+
+<!-- TRANSACTION HISTORY -->
+<div class="card">
+<h3>Transaction History</h3>
+<div id="history"></div>
 </div>
 
 <!-- DEPOSIT -->
@@ -63,9 +73,9 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <h3>Activate Investment Plan</h3>
 
 <select id="planSelect">
-<option value="starter">Starter - $5</option>
-<option value="silver">Silver - $10</option>
-<option value="diamond">Diamond - $20</option>
+<option value="starter">Starter - $5 (0.25 daily)</option>
+<option value="silver">Silver - $10 (1 daily)</option>
+<option value="diamond">Diamond - $20 (2 daily)</option>
 </select>
 
 <select id="networkSelect">
@@ -79,12 +89,10 @@ Profile ID: <span id="profileEmail">Loading...</span>
 
 <div id="walletSection" class="hidden">
 <div class="wallet-box" id="walletAddress"></div>
-<button class="copy-btn hidden" id="copyBtn" onclick="copyWallet()">Copy Wallet Address</button>
+<button class="copy-btn" onclick="copyWallet()">Copy Wallet Address</button>
 
 <input type="number" id="depositAmount" placeholder="Amount Sent">
 <button onclick="submitDeposit()">Submit Deposit</button>
-
-<div id="depositLoading" class="hidden spinner"></div>
 </div>
 </div>
 
@@ -101,7 +109,7 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <button onclick="requestWithdraw()">Request Withdrawal</button>
 </div>
 
-<!-- ADMIN PANEL -->
+<!-- ADMIN -->
 <div class="card hidden" id="adminPanel">
 <h3>ADMIN PANEL</h3>
 
@@ -118,16 +126,13 @@ Profile ID: <span id="profileEmail">Loading...</span>
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, get, update, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyAZP0UPvfCgiiir2zKLMae25dUpVcyP3iw",
 authDomain: "crypto-gainz-3524d.firebaseapp.com",
 databaseURL: "https://crypto-gainz-3524d-default-rtdb.firebaseio.com",
-projectId: "crypto-gainz-3524d",
-storageBucket: "crypto-gainz-3524d.firebasestorage.app",
-messagingSenderId: "270349829717",
-appId: "1:270349829717:web:6e3e2bf25f9ab60b2a76dc"
+projectId: "crypto-gainz-3524d"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -135,7 +140,15 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 
 let selectedWallet="";
-let selectedNetwork="";
+
+function generateDeviceId(){
+let id=localStorage.getItem("deviceId");
+if(!id){
+id="DEV"+Math.random().toString(36).substring(2);
+localStorage.setItem("deviceId",id);
+}
+return id;
+}
 
 onAuthStateChanged(auth, async(user)=>{
 if(!user){window.location="index.html";return;}
@@ -143,26 +156,36 @@ if(!user){window.location="index.html";return;}
 document.getElementById("profileEmail").innerText=user.email;
 
 const userRef=ref(db,'users/'+user.uid);
-const snap=await get(userRef);
+let snap=await get(userRef);
 
 if(!snap.exists()){
-const referralCode="REF"+Math.floor(Math.random()*100000);
-await update(userRef,{
+let referralCode="REF"+Math.floor(Math.random()*100000);
+let refParam=new URLSearchParams(window.location.search).get("ref");
+
+await set(userRef,{
 email:user.email,
 balance:0,
-referralCode:referralCode,
-referredBy:null,
-planStart:null
+referralCode,
+referredBy:refParam||null,
+plan:null,
+planStart:null,
+refEarnings:0,
+deviceId:generateDeviceId()
 });
 }
 
 onValue(userRef,(s)=>{
-document.getElementById("balance").innerText=(s.val()?.balance||0).toFixed(2);
+let data=s.val();
+document.getElementById("balance").innerText=(data.balance||0).toFixed(2);
+document.getElementById("refEarn").innerText=(data.refEarnings||0).toFixed(2);
 });
 
-const userData=(await get(userRef)).val();
+let data=(await get(userRef)).val();
 document.getElementById("refLink").innerText=
-window.location.origin+"/index.html?ref="+userData.referralCode;
+window.location.origin+"/index.html?ref="+data.referralCode;
+
+loadReferrals(data.referralCode);
+loadHistory(user.uid);
 
 if(user.email==="earnsmartapps@gmail.com"){
 document.getElementById("adminPanel").classList.remove("hidden");
@@ -170,111 +193,199 @@ loadAdmin();
 }
 });
 
-/* SHOW WALLET */
-window.showWallet=()=>{
-const network=document.getElementById("networkSelect").value;
-if(!network) return alert("Select network");
-
-if(network==="trc20"){selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";selectedNetwork="TRC20";}
-if(network==="bsc"){selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";selectedNetwork="BEP20";}
-if(network==="erc20"){selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";selectedNetwork="ERC20";}
-
-document.getElementById("walletAddress").innerText=selectedWallet;
-document.getElementById("walletSection").classList.remove("hidden");
-document.getElementById("copyBtn").classList.remove("hidden");
-};
-
-/* COPY */
-window.copyWallet=()=>{
-navigator.clipboard.writeText(selectedWallet);
-alert("Copied");
-};
-
-/* SUBMIT DEPOSIT */
-window.submitDeposit=async()=>{
+/* DAILY PROFIT SYSTEM */
+setInterval(async()=>{
 const user=auth.currentUser;
-const amount=parseFloat(document.getElementById("depositAmount").value);
-const plan=document.getElementById("planSelect").value;
+if(!user) return;
 
-if(!amount) return alert("Enter amount");
+let snap=await get(ref(db,'users/'+user.uid));
+let data=snap.val();
+if(!data.planStart) return;
 
-await push(ref(db,'deposits'),{
-uid:user.uid,
-amount,
-plan,
-status:"pending",
-date:Date.now()
+let now=Date.now();
+let days=Math.floor((now-data.planStart)/(1000*60*60*24));
+if(days>=30){
+await update(ref(db,'users/'+user.uid),{plan:null,planStart:null});
+return;
+}
+
+let lastProfit=data.lastProfit||0;
+if(now-lastProfit>86400000){
+let profit=0;
+if(data.plan==="starter") profit=0.25;
+if(data.plan==="silver") profit=1;
+if(data.plan==="diamond") profit=2;
+
+await update(ref(db,'users/'+user.uid),{
+balance:(data.balance||0)+profit,
+lastProfit:now
 });
 
-alert("Deposit Submitted");
-};
+push(ref(db,'history/'+user.uid),{
+type:"Daily Profit",
+amount:profit,
+date:now
+});
+}
+},60000);
 
-/* ADMIN LOAD */
+/* ADMIN */
 function loadAdmin(){
-onValue(ref(db,'deposits'),(snap)=>{
+onValue(ref(db,'deposits'),snap=>{
 let html="";
 snap.forEach(child=>{
 let d=child.val();
 if(d.status==="pending"){
 html+=`<div class="admin-box">
 ${d.uid} - $${d.amount}
-<button onclick="approveDeposit('${child.key}','${d.uid}',${d.amount}')">Approve</button>
+<button onclick="approveDeposit('${child.key}','${d.uid}',${d.amount})">Approve</button>
 </div>`;
 }
 });
 document.getElementById("adminDeposits").innerHTML=html;
 });
+
+onValue(ref(db,'withdrawals'),snap=>{
+let html="";
+snap.forEach(child=>{
+let d=child.val();
+if(d.status==="pending"){
+html+=`<div class="admin-box">
+${d.uid} - $${d.amount}
+<button onclick="approveWithdraw('${child.key}','${d.uid}',${d.amount})">Approve</button>
+</div>`;
+}
+});
+document.getElementById("adminWithdrawals").innerHTML=html;
+});
 }
 
-/* APPROVE DEPOSIT */
 window.approveDeposit=async(id,uid,amount)=>{
-await update(ref(db,'deposits/'+id),{status:"approved"});
-
-const userRef=ref(db,'users/'+uid);
-const snap=await get(userRef);
-const currentBalance=snap.val().balance||0;
+let userRef=ref(db,'users/'+uid);
+let snap=await get(userRef);
+let data=snap.val();
 
 await update(userRef,{
-balance:currentBalance+amount,
+balance:(data.balance||0)+amount,
+plan:document.getElementById("planSelect").value,
 planStart:Date.now()
 });
 
-if(snap.val().referredBy){
-const allUsers=await get(ref(db,'users'));
-allUsers.forEach(child=>{
-if(child.val().referralCode===snap.val().referredBy){
-update(ref(db,'users/'+child.key),{
-balance:(child.val().balance||0)+1
-});
-}
-});
-}
+await update(ref(db,'deposits/'+id),{status:"approved"});
 
-alert("Deposit Approved");
+push(ref(db,'history/'+uid),{
+type:"Deposit",
+amount,
+date:Date.now()
+});
+
+/* REFERRAL BONUS */
+if(data.referredBy){
+let users=await get(ref(db,'users'));
+users.forEach(child=>{
+if(child.val().referralCode===data.referredBy){
+update(ref(db,'users/'+child.key),{
+balance:(child.val().balance||0)+1,
+refEarnings:(child.val().refEarnings||0)+1
+});
+push(ref(db,'history/'+child.key),{
+type:"Referral Bonus",
+amount:1,
+date:Date.now()
+});
+}
+});
+}
 };
 
-/* WITHDRAW */
-window.requestWithdraw=async()=>{
-const user=auth.currentUser;
-const amount=parseFloat(document.getElementById("withdrawAmount").value);
+window.approveWithdraw=async(id,uid,amount)=>{
+let userRef=ref(db,'users/'+uid);
+let snap=await get(userRef);
+let data=snap.val();
 
-const snap=await get(ref(db,'users/'+user.uid));
-const data=snap.val();
+if(data.balance<amount) return alert("Insufficient");
 
-if(!data.planStart) return alert("No active plan");
+await update(userRef,{balance:data.balance-amount});
+await update(ref(db,'withdrawals/'+id),{status:"approved"});
 
-const days=(Date.now()-data.planStart)/(1000*60*60*24);
-if(days<30) return alert("Withdraw allowed after 30 days");
+push(ref(db,'history/'+uid),{
+type:"Withdrawal",
+amount:-amount,
+date:Date.now()
+});
+};
 
-await push(ref(db,'withdrawals/'+user.uid),{
+/* HISTORY */
+function loadHistory(uid){
+onValue(ref(db,'history/'+uid),snap=>{
+let html="";
+snap.forEach(child=>{
+let d=child.val();
+html+=`<div class="admin-box">${d.type} - $${d.amount}</div>`;
+});
+document.getElementById("history").innerHTML=html;
+});
+}
+
+/* REFERRAL LIST */
+function loadReferrals(code){
+onValue(ref(db,'users'),snap=>{
+let count=0;
+let html="";
+snap.forEach(child=>{
+if(child.val().referredBy===code){
+count++;
+html+=`<div class="admin-box">${child.val().email}</div>`;
+}
+});
+document.getElementById("refCount").innerText=count;
+document.getElementById("refHistory").innerHTML=html;
+});
+}
+
+/* WALLET */
+window.showWallet=()=>{
+let net=document.getElementById("networkSelect").value;
+if(!net) return alert("Select Network");
+if(net==="trc20") selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
+if(net==="bsc") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+if(net==="erc20") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+document.getElementById("walletAddress").innerText=selectedWallet;
+document.getElementById("walletSection").classList.remove("hidden");
+};
+
+window.copyWallet=()=>{
+navigator.clipboard.writeText(selectedWallet);
+alert("Copied");
+};
+
+window.submitDeposit=async()=>{
+let user=auth.currentUser;
+let amount=parseFloat(document.getElementById("depositAmount").value);
+if(!amount||amount<5) return alert("Minimum $5");
+
+await push(ref(db,'deposits'),{
+uid:user.uid,
 amount,
 status:"pending",
 date:Date.now()
 });
+alert("Deposit Submitted - Waiting Admin Approval");
+};
 
-alert("Withdrawal Submitted");
+window.requestWithdraw=async()=>{
+let user=auth.currentUser;
+let amount=parseFloat(document.getElementById("withdrawAmount").value);
+
+await push(ref(db,'withdrawals'),{
+uid:user.uid,
+amount,
+status:"pending",
+date:Date.now()
+});
+alert("Withdrawal Pending Admin Approval");
 };
 
 </script>
 </body>
-  </html>
+</html>
