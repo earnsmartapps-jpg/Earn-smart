@@ -5,7 +5,6 @@
 <title>Earn Smart - Fintech Dashboard</title>
 
 <style>
-/* ====== YOUR ORIGINAL STYLE (UNCHANGED) ====== */
 body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b,#334155);color:white;overflow-x:hidden;}
 .dollar{position:fixed;top:-50px;color:silver;font-size:20px;animation:fall linear infinite;opacity:0.4;}
 @keyframes fall{to{transform:translateY(110vh);}}
@@ -19,10 +18,6 @@ button:hover{transform:scale(1.05);}
 input,select{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:none;}
 .wallet-box{background:#0f172a;padding:12px;border-radius:8px;word-break:break-all;font-size:13px;}
 .hidden{display:none;}
-.spinner{border:4px solid rgba(255,255,255,0.2);border-top:4px solid silver;border-radius:50%;width:25px;height:25px;animation:spin 1s linear infinite;margin:auto;}
-@keyframes spin{100%{transform:rotate(360deg);}}
-.success{color:#22c55e;margin-top:8px;}
-.small{font-size:12px;color:#cbd5e1;}
 .admin-box{background:#1e293b;padding:10px;border-radius:10px;margin-top:10px;}
 </style>
 </head>
@@ -54,21 +49,7 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <h4>Total Referrals: <span id="refCount">0</span></h4>
 </div>
 
-<!-- REFERRAL -->
-<div class="card">
-<h3>Referral</h3>
-<div id="refLink"></div>
-<h4>Referral History</h4>
-<div id="refHistory"></div>
-</div>
-
-<!-- TRANSACTION HISTORY -->
-<div class="card">
-<h3>Transaction History</h3>
-<div id="history"></div>
-</div>
-
-<!-- DEPOSIT -->
+<!-- ACTIVATE PLAN (MOVED HERE) -->
 <div class="card">
 <h3>Activate Investment Plan</h3>
 
@@ -96,6 +77,25 @@ Profile ID: <span id="profileEmail">Loading...</span>
 </div>
 </div>
 
+<!-- REFERRAL -->
+<div class="card">
+<h3>Referral</h3>
+
+<p class="small">Earn <b>$1</b> after your referral activates an investment plan.</p>
+
+<div class="wallet-box" id="refLinkBox"></div>
+<button class="copy-btn" onclick="copyReferral()">Copy Referral Link</button>
+
+<h4>Referral History</h4>
+<div id="refHistory"></div>
+</div>
+
+<!-- TRANSACTION HISTORY -->
+<div class="card">
+<h3>Transaction History</h3>
+<div id="history"></div>
+</div>
+
 <!-- WITHDRAW -->
 <div class="card">
 <h3>Withdraw</h3>
@@ -112,10 +112,8 @@ Profile ID: <span id="profileEmail">Loading...</span>
 <!-- ADMIN -->
 <div class="card hidden" id="adminPanel">
 <h3>ADMIN PANEL</h3>
-
 <h4>Pending Deposits</h4>
 <div id="adminDeposits"></div>
-
 <h4>Pending Withdrawals</h4>
 <div id="adminWithdrawals"></div>
 </div>
@@ -140,15 +138,7 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 
 let selectedWallet="";
-
-function generateDeviceId(){
-let id=localStorage.getItem("deviceId");
-if(!id){
-id="DEV"+Math.random().toString(36).substring(2);
-localStorage.setItem("deviceId",id);
-}
-return id;
-}
+let referralLink="";
 
 onAuthStateChanged(auth, async(user)=>{
 if(!user){window.location="index.html";return;}
@@ -169,20 +159,20 @@ referralCode,
 referredBy:refParam||null,
 plan:null,
 planStart:null,
-refEarnings:0,
-deviceId:generateDeviceId()
+refEarnings:0
 });
 }
 
-onValue(userRef,(s)=>{
-let data=s.val();
-document.getElementById("balance").innerText=(data.balance||0).toFixed(2);
-document.getElementById("refEarn").innerText=(data.refEarnings||0).toFixed(2);
-});
-
 let data=(await get(userRef)).val();
-document.getElementById("refLink").innerText=
-window.location.origin+"/index.html?ref="+data.referralCode;
+
+referralLink=window.location.origin+"/index.html?ref="+data.referralCode;
+document.getElementById("refLinkBox").innerText=referralLink;
+
+onValue(userRef,(s)=>{
+let d=s.val();
+document.getElementById("balance").innerText=(d.balance||0).toFixed(2);
+document.getElementById("refEarn").innerText=(d.refEarnings||0).toFixed(2);
+});
 
 loadReferrals(data.referralCode);
 loadHistory(user.uid);
@@ -193,41 +183,47 @@ loadAdmin();
 }
 });
 
-/* DAILY PROFIT SYSTEM */
-setInterval(async()=>{
-const user=auth.currentUser;
-if(!user) return;
+/* COPY REFERRAL */
+window.copyReferral=()=>{
+navigator.clipboard.writeText(referralLink);
+alert("Referral Link Copied");
+};
 
-let snap=await get(ref(db,'users/'+user.uid));
-let data=snap.val();
-if(!data.planStart) return;
+/* WALLET */
+window.showWallet=()=>{
+let net=document.getElementById("networkSelect").value;
+if(!net) return alert("Select Network");
 
-let now=Date.now();
-let days=Math.floor((now-data.planStart)/(1000*60*60*24));
-if(days>=30){
-await update(ref(db,'users/'+user.uid),{plan:null,planStart:null});
-return;
-}
+if(net==="trc20") selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
+if(net==="bsc") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
+if(net==="erc20") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
 
-let lastProfit=data.lastProfit||0;
-if(now-lastProfit>86400000){
-let profit=0;
-if(data.plan==="starter") profit=0.25;
-if(data.plan==="silver") profit=1;
-if(data.plan==="diamond") profit=2;
+document.getElementById("walletAddress").innerText=selectedWallet;
+document.getElementById("walletSection").classList.remove("hidden");
+};
 
-await update(ref(db,'users/'+user.uid),{
-balance:(data.balance||0)+profit,
-lastProfit:now
+window.copyWallet=()=>{
+navigator.clipboard.writeText(selectedWallet);
+alert("Wallet Copied");
+};
+
+/* SUBMIT DEPOSIT */
+window.submitDeposit=async()=>{
+let user=auth.currentUser;
+let amount=parseFloat(document.getElementById("depositAmount").value);
+let plan=document.getElementById("planSelect").value;
+
+if(!amount||amount<5) return alert("Minimum $5");
+
+await push(ref(db,'deposits'),{
+uid:user.uid,
+amount,
+plan,
+status:"pending",
+date:Date.now()
 });
-
-push(ref(db,'history/'+user.uid),{
-type:"Daily Profit",
-amount:profit,
-date:now
-});
-}
-},60000);
+alert("Deposit Submitted - Waiting Admin Approval");
+};
 
 /* ADMIN */
 function loadAdmin(){
@@ -238,46 +234,26 @@ let d=child.val();
 if(d.status==="pending"){
 html+=`<div class="admin-box">
 ${d.uid} - $${d.amount}
-<button onclick="approveDeposit('${child.key}','${d.uid}',${d.amount})">Approve</button>
+<button onclick="approveDeposit('${child.key}','${d.uid}',${d.amount},'${d.plan}')">Approve</button>
 </div>`;
 }
 });
 document.getElementById("adminDeposits").innerHTML=html;
 });
-
-onValue(ref(db,'withdrawals'),snap=>{
-let html="";
-snap.forEach(child=>{
-let d=child.val();
-if(d.status==="pending"){
-html+=`<div class="admin-box">
-${d.uid} - $${d.amount}
-<button onclick="approveWithdraw('${child.key}','${d.uid}',${d.amount})">Approve</button>
-</div>`;
-}
-});
-document.getElementById("adminWithdrawals").innerHTML=html;
-});
 }
 
-window.approveDeposit=async(id,uid,amount)=>{
+window.approveDeposit=async(id,uid,amount,plan)=>{
 let userRef=ref(db,'users/'+uid);
 let snap=await get(userRef);
 let data=snap.val();
 
 await update(userRef,{
 balance:(data.balance||0)+amount,
-plan:document.getElementById("planSelect").value,
+plan:plan,
 planStart:Date.now()
 });
 
 await update(ref(db,'deposits/'+id),{status:"approved"});
-
-push(ref(db,'history/'+uid),{
-type:"Deposit",
-amount,
-date:Date.now()
-});
 
 /* REFERRAL BONUS */
 if(data.referredBy){
@@ -288,44 +264,12 @@ update(ref(db,'users/'+child.key),{
 balance:(child.val().balance||0)+1,
 refEarnings:(child.val().refEarnings||0)+1
 });
-push(ref(db,'history/'+child.key),{
-type:"Referral Bonus",
-amount:1,
-date:Date.now()
-});
 }
 });
 }
+
+alert("Deposit Approved + Plan Activated");
 };
-
-window.approveWithdraw=async(id,uid,amount)=>{
-let userRef=ref(db,'users/'+uid);
-let snap=await get(userRef);
-let data=snap.val();
-
-if(data.balance<amount) return alert("Insufficient");
-
-await update(userRef,{balance:data.balance-amount});
-await update(ref(db,'withdrawals/'+id),{status:"approved"});
-
-push(ref(db,'history/'+uid),{
-type:"Withdrawal",
-amount:-amount,
-date:Date.now()
-});
-};
-
-/* HISTORY */
-function loadHistory(uid){
-onValue(ref(db,'history/'+uid),snap=>{
-let html="";
-snap.forEach(child=>{
-let d=child.val();
-html+=`<div class="admin-box">${d.type} - $${d.amount}</div>`;
-});
-document.getElementById("history").innerHTML=html;
-});
-}
 
 /* REFERRAL LIST */
 function loadReferrals(code){
@@ -343,35 +287,17 @@ document.getElementById("refHistory").innerHTML=html;
 });
 }
 
-/* WALLET */
-window.showWallet=()=>{
-let net=document.getElementById("networkSelect").value;
-if(!net) return alert("Select Network");
-if(net==="trc20") selectedWallet="TKJAvkyjdDSzKtS1HihiKno1tTfi2bTJJe";
-if(net==="bsc") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-if(net==="erc20") selectedWallet="0xB66E1e0e5452489298bebd7Cd463587E6866baD2";
-document.getElementById("walletAddress").innerText=selectedWallet;
-document.getElementById("walletSection").classList.remove("hidden");
-};
-
-window.copyWallet=()=>{
-navigator.clipboard.writeText(selectedWallet);
-alert("Copied");
-};
-
-window.submitDeposit=async()=>{
-let user=auth.currentUser;
-let amount=parseFloat(document.getElementById("depositAmount").value);
-if(!amount||amount<5) return alert("Minimum $5");
-
-await push(ref(db,'deposits'),{
-uid:user.uid,
-amount,
-status:"pending",
-date:Date.now()
+/* HISTORY */
+function loadHistory(uid){
+onValue(ref(db,'history/'+uid),snap=>{
+let html="";
+snap.forEach(child=>{
+let d=child.val();
+html+=`<div class="admin-box">${d.type} - $${d.amount}</div>`;
 });
-alert("Deposit Submitted - Waiting Admin Approval");
-};
+document.getElementById("history").innerHTML=html;
+});
+}
 
 window.requestWithdraw=async()=>{
 let user=auth.currentUser;
